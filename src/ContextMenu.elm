@@ -1,13 +1,10 @@
 module ContextMenu exposing
-  ( Direction(..), Overflow(..), Cursor(..), Config
-  , white, lightGray, gray, lightBlue, deepBlue, defaultConfig
-  , ContextMenu
-  , Msg, init, update, subscriptions
+  ( Direction(..), Overflow(..), Cursor(..), Config, defaultConfig
+  , ContextMenu, Msg, init, update, subscriptions
   , Item, item, itemWithAnnotation, disabled, icon, shortcut
   , view, open
   )
 
-import Tuple
 import Task
 import Process
 import Color exposing (Color)
@@ -134,39 +131,14 @@ type Cursor
   | Pointer
 
 
-white : Color
-white =
-  Color.rgb 255 255 255
-
-
-lightGray : Color
-lightGray =
-  Color.rgb 238 238 238
-
-
-gray : Color
-gray =
-  Color.rgb 217 217 217
-
-
-lightBlue : Color
-lightBlue =
-  Color.rgb 117 199 253
-
-
-deepBlue : Color
-deepBlue =
-  Color.rgb 62 126 255
-
-
 defaultConfig : Config
 defaultConfig =
   { width = 300
   , direction = RightBottom
   , overflowX = Mirror
-  , overflowY = Shift
-  , containerColor = white
-  , hoverColor = lightGray
+  , overflowY = Mirror
+  , containerColor = Color.white
+  , hoverColor = Color.rgb 240 240 240
   , invertText = False
   , cursor = Pointer
   , rounded = False

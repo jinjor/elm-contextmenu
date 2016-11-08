@@ -1,7 +1,7 @@
 elm-context-menu
 ----
 
-Flexible context menu for Elm
+Flexible context menu for Elm ([Demo](https://jinjor.github.io/elm-contextmenu/))
 
 
 ## Position and Colors
