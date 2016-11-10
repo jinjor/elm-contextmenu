@@ -6,8 +6,8 @@ import Color exposing (Color)
 
 winDesktop : ContextMenu.Config
 winDesktop =
-  { width = 300
-  , direction = LeftBottom
+  { defaultConfig
+  | direction = LeftBottom
   , overflowX = Shift
   , overflowY = Mirror
   , containerColor = lightGray
@@ -20,8 +20,8 @@ winDesktop =
 
 winChrome : ContextMenu.Config
 winChrome =
-  { width = 300
-  , direction = RightBottom
+  { defaultConfig
+  | direction = RightBottom
   , overflowX = Shift
   , overflowY = Mirror
   , containerColor = white
@@ -34,8 +34,8 @@ winChrome =
 
 winFirefox : ContextMenu.Config
 winFirefox =
-  { width = 300
-  , direction = RightBottom
+  { defaultConfig
+  | direction = RightBottom
   , overflowX = Shift
   , overflowY = Mirror
   , containerColor = lightGray
@@ -48,8 +48,8 @@ winFirefox =
 
 winEdge : ContextMenu.Config
 winEdge =
-  { width = 300
-  , direction = RightBottom
+  { defaultConfig
+  | direction = RightBottom
   , overflowX = Mirror
   , overflowY = Mirror
   , containerColor = lightGray
@@ -62,8 +62,8 @@ winEdge =
 
 mac : ContextMenu.Config
 mac =
-  { width = 300
-  , direction = RightBottom
+  { defaultConfig
+  | direction = RightBottom
   , overflowX = Mirror
   , overflowY = Shift
   , containerColor = lightGray
@@ -76,8 +76,8 @@ mac =
 
 googleSpreadsheet : ContextMenu.Config
 googleSpreadsheet =
-  { width = 300
-  , direction = RightBottom
+  { defaultConfig
+  | direction = RightBottom
   , overflowX = Shift
   , overflowY = Shift
   , containerColor = white

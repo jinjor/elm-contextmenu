@@ -1,9 +1,26 @@
 module ContextMenu exposing
-  ( Direction(..), Overflow(..), Cursor(..), Config, defaultConfig
-  , ContextMenu, Msg, init, update, subscriptions
+  ( ContextMenu, Msg, init, update, subscriptions
   , Item, item, itemWithAnnotation, disabled, icon, shortcut
+  , Direction(..), Overflow(..), Cursor(..), Config, defaultConfig
   , view, open
   )
+
+{-| The ContextMenu component that follows the Elm Architecture.
+
+# TEA Parts
+@docs ContextMenu, Msg, init, update, subscriptions
+
+# Item
+@docs Item, item, itemWithAnnotation, disabled, icon, shortcut
+
+# Config
+@docs Config, Direction, Overflow, Cursor, defaultConfig
+
+# View
+@docs view, open
+
+-}
+
 
 import Task
 import Process
@@ -21,21 +38,23 @@ import Styles as S
 
 -- MODEL
 
-
-type alias ContextMenu context =
-  { openState : Maybe (Int, Int, context)
-  , x : Int
-  , y : Int
-  , windowWidth : Int
-  , windowHeight : Int
-  , hoverIndex : Maybe (Int, Int)
-  }
+{-|-}
+type ContextMenu context =
+  ContextMenu
+    { openState : Maybe (Int, Int, context)
+    , x : Int
+    , y : Int
+    , windowWidth : Int
+    , windowHeight : Int
+    , hoverIndex : Maybe (Int, Int)
+    }
 
 
 
 -- UPDATE
 
 
+{-|-}
 type Msg context
   = NoOp
   | RequestOpen context
@@ -46,44 +65,50 @@ type Msg context
   | HoverChanged (Maybe (Int, Int))
 
 
+{-|-}
 init : (ContextMenu context, Cmd (Msg context))
 init =
-  { openState = Nothing
-  , x = 0
-  , y = 0
-  , windowWidth = 500 -- dummy
-  , windowHeight = 500 -- dummy
-  , hoverIndex = Nothing
-  } ! [ Task.perform WindowSize Window.size ]
+  ( ContextMenu
+    { openState = Nothing
+    , x = 0
+    , y = 0
+    , windowWidth = 500 -- dummy
+    , windowHeight = 500 -- dummy
+    , hoverIndex = Nothing
+    }
+  , Task.perform WindowSize Window.size
+  )
 
 
+{-|-}
 update : Msg context -> ContextMenu context -> (ContextMenu context, Cmd (Msg context))
-update msg model =
+update msg (ContextMenu model) =
   case msg of
     NoOp ->
-      model ! []
+      (ContextMenu model, Cmd.none)
 
     RequestOpen context ->
-      model ! [ Task.perform (\_ -> Open context) (Process.sleep 0) ]
+      (ContextMenu model, Task.perform (\_ -> Open context) (Process.sleep 0))
 
     Open context ->
-      { model | openState = Just (model.x, model.y, context) } ! []
+      (ContextMenu { model | openState = Just (model.x, model.y, context) }, Cmd.none)
 
     Close ->
-      { model | openState = Nothing, hoverIndex = Nothing } ! []
+      (ContextMenu { model | openState = Nothing, hoverIndex = Nothing }, Cmd.none)
 
     Pos { x, y } ->
-      { model | x = x, y = y } ! []
+      (ContextMenu { model | x = x, y = y }, Cmd.none)
 
     WindowSize { width, height } ->
-      { model | windowWidth = width, windowHeight = height } ! []
+      (ContextMenu { model | windowWidth = width, windowHeight = height }, Cmd.none)
 
     HoverChanged index ->
-      { model | hoverIndex = index } ! []
+      (ContextMenu { model | hoverIndex = index }, Cmd.none)
 
 
+{-|-}
 subscriptions : ContextMenu context -> Sub (Msg context)
-subscriptions model =
+subscriptions _ =
   Sub.batch
     [ Mouse.moves Pos
     , Mouse.downs (\_ -> Close)
@@ -91,280 +116,7 @@ subscriptions model =
     ]
 
 
-open : (Msg context -> msg) -> context -> Attribute msg
-open transform context =
-  onWithOptions
-    "contextmenu"
-    { preventDefault = True, stopPropagation = True }
-    (Decode.succeed (transform (RequestOpen context)))
-
-
-
--- CONFIG
-
-
-type alias Config =
-  { width : Int
-  , direction : Direction
-  , overflowX : Overflow
-  , overflowY : Overflow
-  , containerColor : Color
-  , hoverColor : Color
-  , invertText : Bool
-  , cursor : Cursor
-  , rounded : Bool
-  }
-
-
-type Direction
-  = LeftBottom
-  | RightBottom
-
-
-type Overflow
-  = Shift
-  | Mirror
-
-
-type Cursor
-  = Arrow
-  | Pointer
-
-
-defaultConfig : Config
-defaultConfig =
-  { width = 300
-  , direction = RightBottom
-  , overflowX = Mirror
-  , overflowY = Mirror
-  , containerColor = Color.white
-  , hoverColor = Color.rgb 240 240 240
-  , invertText = False
-  , cursor = Pointer
-  , rounded = False
-  }
-
-
--- ITEM
-
-
-type Item
-  = Item
-    { height : Int
-    , icon : Maybe (Color -> Int -> Html Never, Color)
-    , content : Content
-    , shortcut : String
-    , disabled : Bool
-    }
-
-
-type Content
-  = Text String
-  | Custom (Bool -> Html Never)
-
-
-item : String -> Item
-item s =
-  Item
-    { height = defaultItemHeight
-    , icon = Nothing
-    , content = Text s
-    , shortcut = ""
-    , disabled = False
-    }
-
-
-custom : Int -> (Bool -> Html Never) -> Item
-custom height content =
-  Item
-    { height = Basics.max defaultItemHeight height
-    , icon = Nothing
-    , content = Custom content
-    , shortcut = ""
-    , disabled = False
-    }
-
-
-itemWithAnnotation : String -> String -> Item
-itemWithAnnotation s ann =
-  custom (defaultItemHeight + annotationHeight - 2) (annotationView s ann)
-
-
-annotationHeight : Int
-annotationHeight = 12
-
-
-annotationFontSize : Int
-annotationFontSize = 10
-
-
-annotationView : String -> String -> Bool -> Html Never
-annotationView s ann disabled =
-  div []
-    [ div
-        [ style (S.text defaultItemHeight) ]
-        [ text s ]
-    , div
-        [ style (S.annotation annotationTextColor annotationHeight annotationFontSize disabled) ]
-        [ text ann ]
-    ]
-
-
-disabled : Bool -> Item -> Item
-disabled disabled_ (Item item) =
-  Item { item | disabled = disabled_ }
-
-
-shortcut : String -> Item -> Item
-shortcut shortcut (Item item) =
-  Item { item | shortcut = shortcut }
-
-
-icon : (Color -> Int -> Html Never) -> Color -> Item -> Item
-icon icon_ color (Item item) =
-  Item { item | icon = Just (icon_, color) }
-
-
-
--- VIEW
-
-
-view : Config -> (Msg context -> msg) -> (context -> List (List (Item, msg))) -> ContextMenu context -> Html msg
-view config transform toItemGroups model =
-  case model.openState of
-    Just (x, y, context) ->
-      let
-        groups =
-          toItemGroups context
-
-        itemGroups =
-          List.map (List.map Tuple.first) groups
-
-        groupsView =
-          List.indexedMap
-            (itemGroupView config transform model.hoverIndex)
-            groups
-      in
-        case joinGroupsWithPartition groupsView of
-          Just items ->
-            let
-              x_ =
-                calculateX
-                  config.direction
-                  config.overflowX
-                  model.windowWidth
-                  (menuWidthWithBorders config.width)
-                  x
-
-              y_ =
-                calculateY
-                  config.overflowY
-                  model.windowHeight
-                  (calculateMenuHeight itemGroups)
-                  y
-            in
-              div
-                [ style
-                    ( S.container
-                        config.containerColor
-                        containerBorderWidth
-                        containerPadding
-                        config.rounded
-                        config.width
-                        x_
-                        y_
-                        fontSize
-                    )
-                -- , onWithOptions
-                --     "mousedown"
-                --     { preventDefault = False
-                --     , stopPropagation = True
-                --     }
-                --     (Decode.succeed (transform NoOp))
-                ]
-                items
-
-          Nothing ->
-            Html.text ""
-
-    Nothing ->
-      Html.text ""
-
-
-joinGroupsWithPartition : List (List (Html msg)) -> Maybe (List (Html msg))
-joinGroupsWithPartition groups =
-  List.foldr
-    (\group prev ->
-      case prev of
-        Just items ->
-          Just (group ++ ( partition :: items ))
-
-        Nothing ->
-          Just group
-    ) Nothing groups
-
-
-partition : Html msg
-partition =
-  hr [ style (S.partition partitionWidth partitionMargin) ] []
-
-
-itemGroupView : Config -> (Msg context -> msg) -> Maybe (Int, Int) -> Int -> List (Item, msg) -> List (Html msg)
-itemGroupView config transform hoverIndex groupIndex items =
-  List.indexedMap (itemView config transform hoverIndex groupIndex) items
-
-
-itemView : Config -> (Msg context -> msg) -> Maybe (Int, Int) -> Int -> Int -> (Item, msg) -> Html msg
-itemView config transform hoverIndex groupIndex index (Item item, msg) =
-  let
-    styles =
-      style <|
-        S.row
-          config.hoverColor
-          disabledTextColor
-          config.invertText
-          (config.cursor == Pointer)
-          item.height
-          (hoverIndex == Just (groupIndex, index))
-          item.disabled
-
-    events =
-      if item.disabled then
-        []
-      else
-        [ onMouseEnter (transform <| HoverChanged (Just (groupIndex, index)))
-        , onMouseLeave (transform <| HoverChanged Nothing)
-        , onMouseDown msg
-        ]
-
-    icon =
-      case item.icon of
-        Just (icon, color) ->
-          Html.map never <|
-            div
-              [ style (S.icon fontSize) ]
-              [ icon
-                (if item.disabled then disabledTextColor else color)
-                fontSize
-              ]
-
-        Nothing ->
-          Html.text ""
-
-    content =
-      case item.content of
-        Text s ->
-          div [ style (S.text item.height) ] [ text s ]
-
-        Custom toHtml ->
-          toHtml item.disabled
-
-    shortCut =
-      div [ style (S.shortcut shortcutTextColor item.height) ] [ text item.shortcut ]
-  in
-    div
-      ( styles :: events )
-      [ icon, Html.map never content, shortCut ]
+-- NUMBERS AND CALCULATION
 
 
 disabledTextColor : Color
@@ -404,6 +156,14 @@ defaultItemHeight = 20
 
 fontSize : Int
 fontSize = 13
+
+
+annotationHeight : Int
+annotationHeight = 12
+
+
+annotationFontSize : Int
+annotationFontSize = 10
 
 
 menuWidthWithBorders : Int -> Int
@@ -455,3 +215,288 @@ calculateY overflow windowHeight menuHeight y =
         y - menuHeight
     else
       y
+
+
+-- ITEM
+
+
+{-|-}
+type Item
+  = Item
+    { height : Int
+    , icon : Maybe (Color -> Int -> Html Never, Color)
+    , content : Content
+    , shortcut : String
+    , disabled : Bool
+    }
+
+
+type Content
+  = Text String
+  | Custom (Bool -> Html Never)
+
+
+{-|-}
+item : String -> Item
+item s =
+  Item
+    { height = defaultItemHeight
+    , icon = Nothing
+    , content = Text s
+    , shortcut = ""
+    , disabled = False
+    }
+
+
+custom : Int -> (Bool -> Html Never) -> Item
+custom height content =
+  Item
+    { height = Basics.max defaultItemHeight height
+    , icon = Nothing
+    , content = Custom content
+    , shortcut = ""
+    , disabled = False
+    }
+
+
+{-|-}
+itemWithAnnotation : String -> String -> Item
+itemWithAnnotation s ann =
+  custom (defaultItemHeight + annotationHeight - 2) (annotationView s ann)
+
+
+{-|-}
+disabled : Bool -> Item -> Item
+disabled disabled_ (Item item) =
+  Item { item | disabled = disabled_ }
+
+
+{-|-}
+shortcut : String -> Item -> Item
+shortcut shortcut (Item item) =
+  Item { item | shortcut = shortcut }
+
+
+{-|-}
+icon : (Color -> Int -> Html Never) -> Color -> Item -> Item
+icon icon_ color (Item item) =
+  Item { item | icon = Just (icon_, color) }
+
+
+-- CONFIG
+
+
+{-|-}
+type alias Config =
+  { width : Int
+  , direction : Direction
+  , overflowX : Overflow
+  , overflowY : Overflow
+  , containerColor : Color
+  , hoverColor : Color
+  , invertText : Bool
+  , cursor : Cursor
+  , rounded : Bool
+  , fontFamily : String
+  }
+
+
+{-|-}
+type Direction
+  = LeftBottom
+  | RightBottom
+
+
+{-|-}
+type Overflow
+  = Shift
+  | Mirror
+
+
+{-|-}
+type Cursor
+  = Arrow
+  | Pointer
+
+
+{-|-}
+defaultConfig : Config
+defaultConfig =
+  { width = 300
+  , direction = RightBottom
+  , overflowX = Mirror
+  , overflowY = Mirror
+  , containerColor = Color.white
+  , hoverColor = Color.rgb 240 240 240
+  , invertText = False
+  , cursor = Pointer
+  , rounded = False
+  , fontFamily = "initial"
+  }
+
+
+-- VIEW
+
+
+{-|-}
+open : (Msg context -> msg) -> context -> Attribute msg
+open transform context =
+  onWithOptions
+    "contextmenu"
+    { preventDefault = True, stopPropagation = True }
+    (Decode.succeed (transform (RequestOpen context)))
+
+
+{-|-}
+view : Config -> (Msg context -> msg) -> (context -> List (List (Item, msg))) -> ContextMenu context -> Html msg
+view config transform toItemGroups (ContextMenu model) =
+  case model.openState of
+    Just (x, y, context) ->
+      let
+        groups =
+          toItemGroups context
+
+        itemGroups =
+          List.map (List.map Tuple.first) groups
+
+        groupsView =
+          List.indexedMap
+            (itemGroupView config transform model.hoverIndex)
+            groups
+      in
+        case joinGroupsWithPartition groupsView of
+          Just items ->
+            let
+              x_ =
+                calculateX
+                  config.direction
+                  config.overflowX
+                  model.windowWidth
+                  (menuWidthWithBorders config.width)
+                  x
+
+              y_ =
+                calculateY
+                  config.overflowY
+                  model.windowHeight
+                  (calculateMenuHeight itemGroups)
+                  y
+            in
+              div
+                [ style
+                    ( S.container
+                        config.containerColor
+                        containerBorderWidth
+                        containerPadding
+                        config.rounded
+                        config.width
+                        x_
+                        y_
+                        config.fontFamily
+                        fontSize
+                    )
+                -- , onWithOptions
+                --     "mousedown"
+                --     { preventDefault = False
+                --     , stopPropagation = True
+                --     }
+                --     (Decode.succeed (transform NoOp))
+                ]
+                items
+
+          Nothing ->
+            Html.text ""
+
+    Nothing ->
+      Html.text ""
+
+
+joinGroupsWithPartition : List (List (Html msg)) -> Maybe (List (Html msg))
+joinGroupsWithPartition groups =
+  List.foldr
+    (\group prev ->
+      case prev of
+        Just items ->
+          Just (group ++ ( partition :: items ))
+
+        Nothing ->
+          Just group
+    ) Nothing groups
+
+
+partition : Html msg
+partition =
+  hr [ style (S.partition partitionWidth partitionMargin) ] []
+
+
+itemGroupView : Config -> (Msg context -> msg) -> Maybe (Int, Int) -> Int -> List (Item, msg) -> List (Html msg)
+itemGroupView config transform hoverIndex groupIndex items =
+  List.indexedMap (itemView config transform hoverIndex groupIndex) items
+
+
+itemView : Config -> (Msg context -> msg) -> Maybe (Int, Int) -> Int -> Int -> (Item, msg) -> Html msg
+itemView config transform hoverIndex groupIndex index (Item item, msg) =
+  let
+    hovered =
+      hoverIndex == Just (groupIndex, index)
+
+    styles =
+      style <|
+        S.row
+          config.hoverColor
+          disabledTextColor
+          config.invertText
+          (config.cursor == Pointer)
+          item.height
+          hovered
+          item.disabled
+
+    events =
+      if item.disabled then
+        []
+      else
+        [ onMouseEnter (transform <| HoverChanged (Just (groupIndex, index)))
+        , onMouseLeave (transform <| HoverChanged Nothing)
+        , onMouseDown msg
+        ]
+
+    icon =
+      case item.icon of
+        Just (icon, color) ->
+          Html.map never <|
+            div
+              [ style (S.icon fontSize) ]
+              [ icon
+                (if item.disabled then disabledTextColor else color)
+                fontSize
+              ]
+
+        Nothing ->
+          Html.text ""
+
+    content =
+      case item.content of
+        Text s ->
+          div [ style (S.text item.height) ] [ text s ]
+
+        Custom toHtml ->
+          toHtml item.disabled
+
+    shortCut =
+      div [ style (S.shortcut shortcutTextColor item.height hovered) ] [ text item.shortcut ]
+  in
+    div
+      ( styles :: events )
+      [ icon, Html.map never content, shortCut ]
+
+
+annotationView : String -> String -> Bool -> Html Never
+annotationView s ann disabled =
+  div []
+    [ div
+        [ style (S.text defaultItemHeight) ]
+        [ text s ]
+    , div
+        [ style (S.annotation annotationTextColor annotationHeight annotationFontSize disabled) ]
+        [ text ann ]
+    ]

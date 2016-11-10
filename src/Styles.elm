@@ -11,8 +11,8 @@ borderColor =
   "#ccc"
 
 
-container : Color -> Int -> Int -> Bool -> Int -> Int -> Int -> Int -> Style
-container containerColor borderWidth padding rounded width left top fontSize =
+container : Color -> Int -> Int -> Bool -> Int -> Int -> Int -> String -> Int -> Style
+container containerColor borderWidth padding rounded width left top fontFamily fontSize =
   [ ("border-style", "solid")
   , ("border-width", px borderWidth)
   , ("border-color", borderColor)
@@ -26,6 +26,7 @@ container containerColor borderWidth padding rounded width left top fontSize =
   , ("box-shadow", "0px 3px 8px 0px rgba(0,0,0,0.3)")
   , ("padding", px padding ++ " 0")
   , ("border-radius", if rounded then px padding else "")
+  , ("font-family", fontFamily)
   , ("font-size", px fontSize)
   ]
 
@@ -68,10 +69,10 @@ annotation color annotationHeight fontSize disabled =
   ]
 
 
-shortcut : Color -> Int -> Style
-shortcut color lineHeight =
+shortcut : Color -> Int -> Bool -> Style
+shortcut color lineHeight hovered =
   [ ("line-height", px lineHeight)
-  , ("color", fromColor color)
+  , ("color", if hovered then "" else fromColor color)
   ]
 
 
