@@ -7,7 +7,12 @@ module ContextMenu exposing
 
 {-| The ContextMenu component that follows the Elm Architecture.
 
+See [How to use](http://package.elm-lang.org/packages/jinjor/elm-contextmenu/latest).
+
 # TEA Parts
+
+The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
+
 @docs ContextMenu, Msg, init, update, subscriptions
 
 # Item
@@ -39,8 +44,6 @@ import Styles as S
 -- MODEL
 
 {-| The Model. Put whatever context you like, which is used to create menu items.
-
-See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
 -}
 type ContextMenu context =
   ContextMenu
@@ -58,8 +61,6 @@ type ContextMenu context =
 
 
 {-| The Message.
-
-See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
 -}
 type Msg context
   = NoOp
@@ -72,8 +73,6 @@ type Msg context
 
 
 {-| The init function.
-
-See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
 -}
 init : (ContextMenu context, Cmd (Msg context))
 init =
@@ -90,8 +89,6 @@ init =
 
 
 {-| The update function.
-
-See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
 -}
 update : Msg context -> ContextMenu context -> (ContextMenu context, Cmd (Msg context))
 update msg (ContextMenu model) =
@@ -119,8 +116,6 @@ update msg (ContextMenu model) =
 
 
 {-| The Subscription.
-
-See [The Elm Architecture](https://guide.elm-lang.org/architecture/) for more information.
 -}
 subscriptions : ContextMenu context -> Sub (Msg context)
 subscriptions _ =
