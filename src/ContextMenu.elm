@@ -417,6 +417,22 @@ type Cursor
 
 
 {-| The default config.
+
+```
+defaultConfig =
+  { width = 300
+  , direction = RightBottom
+  , overflowX = Mirror
+  , overflowY = Mirror
+  , containerColor = Color.white
+  , hoverColor = Color.rgb 240 240 240
+  , invertText = False
+  , cursor = Pointer
+  , rounded = False
+  , fontFamily = "initial"
+  }
+```
+
 -}
 defaultConfig : Config
 defaultConfig =
