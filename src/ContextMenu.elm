@@ -574,6 +574,7 @@ itemView config transform hoverIndex groupIndex index (Item item, msg) =
           item.height
           hovered
           item.disabled
+          (String.trim item.shortcut /= "")
 
     events =
       if item.disabled then

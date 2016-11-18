@@ -10972,8 +10972,8 @@ var _user$project$Styles$text = function (lineHeight) {
 		}
 	};
 };
-var _user$project$Styles$row = F7(
-	function (hoverColor, disabledTextColor, invertText, usePointer, lineHeight, hovered, disabled) {
+var _user$project$Styles$row = F8(
+	function (hoverColor, disabledTextColor, invertText, usePointer, lineHeight, hovered, disabled, hasShortCut) {
 		return {
 			ctor: '::',
 			_0: {ctor: '_Tuple2', _0: 'position', _1: 'relative'},
@@ -11013,7 +11013,11 @@ var _user$project$Styles$row = F7(
 									_0: {ctor: '_Tuple2', _0: 'display', _1: 'flex'},
 									_1: {
 										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: 'justify-content', _1: 'space-between'},
+										_0: {
+											ctor: '_Tuple2',
+											_0: 'justify-content',
+											_1: hasShortCut ? 'space-between' : ''
+										},
 										_1: {ctor: '[]'}
 									}
 								}
@@ -11682,7 +11686,7 @@ var _user$project$ContextMenu$itemView = F6(
 			_elm_lang$core$Maybe$Just(
 				{ctor: '_Tuple2', _0: groupIndex, _1: index}));
 		var styles = _elm_lang$html$Html_Attributes$style(
-			A7(
+			A8(
 				_user$project$Styles$row,
 				config.hoverColor,
 				_user$project$ContextMenu$disabledTextColor,
@@ -11690,7 +11694,10 @@ var _user$project$ContextMenu$itemView = F6(
 				_elm_lang$core$Native_Utils.eq(config.cursor, _user$project$ContextMenu$Pointer),
 				_p26.height,
 				hovered,
-				_p26.disabled));
+				_p26.disabled,
+				!_elm_lang$core$Native_Utils.eq(
+					_elm_lang$core$String$trim(_p26.shortcut),
+					'')));
 		var shortCut = A2(
 			_elm_lang$html$Html$div,
 			{

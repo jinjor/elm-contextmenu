@@ -31,8 +31,8 @@ container containerColor borderWidth padding rounded width left top fontFamily f
   ]
 
 
-row : Color -> Color -> Bool -> Bool -> Int -> Bool -> Bool -> Style
-row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabled =
+row : Color -> Color -> Bool -> Bool -> Int -> Bool -> Bool -> Bool -> Style
+row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabled hasShortCut =
   [ ("position", "relative")
   , ("padding", "0 18px 0 28px")
   , ("background-color", if hovered then fromColor hoverColor else "")
@@ -47,7 +47,7 @@ row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabl
     )
   , ("cursor", if (not disabled) && usePointer then "pointer" else "")
   , ("display", "flex")
-  , ("justify-content", "space-between")
+  , ("justify-content", if hasShortCut then "space-between" else "")
   ]
 
 
