@@ -6,7 +6,8 @@ import Html.Attributes exposing (..)
 
 import ContextMenu exposing (ContextMenu)
 import Configs
-import Icons
+import FontAwesome
+import Material.Icons.Image as Material
 
 
 main : Program Never Model Msg
@@ -121,12 +122,12 @@ toItemGroups context =
         , (ContextMenu.item "Yo!", Item 2)
         ]
       , [ ( ContextMenu.item "Take photos"
-              |> ContextMenu.icon Icons.camera Color.green
+              |> ContextMenu.icon FontAwesome.camera Color.green
               |> ContextMenu.disabled True
           , Item 3
           )
         , ( ContextMenu.item "Have a break"
-              |> ContextMenu.icon Icons.coffee Color.brown
+              |> ContextMenu.icon FontAwesome.coffee Color.brown
               |> ContextMenu.disabled False
           , Item 4
           )
@@ -136,7 +137,7 @@ toItemGroups context =
           , Item 6
           )
         , ( ContextMenu.itemWithAnnotation "Item with annotation" "Some annotation here"
-              |> ContextMenu.icon Icons.coffee Color.red
+              |> ContextMenu.icon Material.tag_faces Color.red
               |> ContextMenu.disabled False
           , Item 7
           )
