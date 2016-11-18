@@ -8,7 +8,7 @@ Flexible context menu for Elm ([Demo](https://jinjor.github.io/elm-contextmenu/)
 
 This component works with [The Elm Architecture](https://guide.elm-lang.org/architecture/).
 
-1. Model.
+<span>1. Model</span>
 ```elm
 type alias Model =
   { contextMenu : ContextMenu Context
@@ -17,14 +17,14 @@ type alias Model =
   }
 ```
 
-2. Msg
+<span>2. Msg</span>
 ```elm
 type Msg
   = ContextMenuMsg (ContextMenu.Msg Context)
   | Item Int
 ```
 
-3. Initialize
+<span>3. Initialize</span>
 ```elm
 init : (Model, Cmd Msg)
 init =
@@ -36,7 +36,7 @@ init =
       ! [ Cmd.map ContextMenuMsg msg ]
 ```
 
-4. Update
+<span>4. Update</span>
 ```elm
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -49,14 +49,14 @@ update msg model =
         { model | contextMenu = contextMenu } ! [ Cmd.map ContextMenuMsg cmd ]
 ```
 
-5. Subscribe
+<span>5. Subscribe</span>
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.map ContextMenuMsg (ContextMenu.subscriptions model.contextMenu)
 ```
 
-6. View
+<span>6. View</span>
 ```elm
 view : Model -> Html Msg
 view model =
