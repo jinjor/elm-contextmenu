@@ -2,7 +2,7 @@ module ContextMenu exposing
   ( ContextMenu, Msg, init, update, subscriptions
   , Item, item, itemWithAnnotation, disabled, icon, shortcut
   , Direction(..), Overflow(..), Cursor(..), Config, defaultConfig
-  , view, open
+  , view, open, openIf
   )
 
 {-| The ContextMenu component that follows the Elm Architecture.
@@ -22,7 +22,7 @@ The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org
 @docs Config, Direction, Overflow, Cursor, defaultConfig
 
 # View
-@docs view, open
+@docs view, open, openIf
 
 -}
 
@@ -47,14 +47,65 @@ import Styles as S
 -}
 type ContextMenu context =
   ContextMenu
-    { openState : Maybe (Int, Int, context)
+    { openState : OpenState context
     , x : Int
     , y : Int
     , windowWidth : Int
     , windowHeight : Int
-    , hoverIndex : Maybe (Int, Int)
     }
 
+
+type HoverState
+  = Container
+  | ItemIndex (Int, Int)
+  | None
+
+
+getItemIndex : HoverState -> Maybe (Int, Int)
+getItemIndex hover =
+  case hover of
+    ItemIndex index -> Just index
+    _ -> Nothing
+
+
+type alias OpenState context =
+  Maybe (Int, Int, HoverState, context)
+
+
+shouldCloseOnClick : OpenState context -> Bool
+shouldCloseOnClick openState =
+  case openState of
+    Just (_, _, hover, _) ->
+      hover /= Container
+
+    Nothing ->
+      True
+
+
+setHoverState : HoverState -> OpenState context -> OpenState context
+setHoverState hover openState =
+  openState
+    |> Maybe.map (\(x, y, _, context) -> (x, y, hover, context))
+
+
+enterItem : (Int, Int) -> OpenState context -> OpenState context
+enterItem index openState =
+  setHoverState (ItemIndex index) openState
+
+
+leaveItem : OpenState context -> OpenState context
+leaveItem openState =
+  setHoverState Container openState
+
+
+enterContainer : OpenState context -> OpenState context
+enterContainer openState =
+  setHoverState Container openState
+
+
+leaveContainer : OpenState context -> OpenState context
+leaveContainer openState =
+  setHoverState None openState
 
 
 -- UPDATE
@@ -69,7 +120,10 @@ type Msg context
   | Close
   | Pos Mouse.Position
   | WindowSize Window.Size
-  | HoverChanged (Maybe (Int, Int))
+  | EnterItem (Int, Int)
+  | LeaveItem
+  | EnterContainer
+  | LeaveContainer
 
 
 {-| The init function.
@@ -82,7 +136,6 @@ init =
     , y = 0
     , windowWidth = 9999 -- dummy
     , windowHeight = 9999 -- dummy
-    , hoverIndex = Nothing
     }
   , Task.perform WindowSize Window.size
   )
@@ -100,10 +153,10 @@ update msg (ContextMenu model) =
       (ContextMenu model, Task.perform (\_ -> Open context) (Process.sleep 0))
 
     Open context ->
-      (ContextMenu { model | openState = Just (model.x, model.y, context) }, Cmd.none)
+      (ContextMenu { model | openState = Just (model.x, model.y, None, context) }, Cmd.none)
 
     Close ->
-      (ContextMenu { model | openState = Nothing, hoverIndex = Nothing }, Cmd.none)
+      (ContextMenu { model | openState = Nothing }, Cmd.none)
 
     Pos { x, y } ->
       (ContextMenu { model | x = x, y = y }, Cmd.none)
@@ -111,17 +164,29 @@ update msg (ContextMenu model) =
     WindowSize { width, height } ->
       (ContextMenu { model | windowWidth = width, windowHeight = height }, Cmd.none)
 
-    HoverChanged index ->
-      (ContextMenu { model | hoverIndex = index }, Cmd.none)
+    EnterItem index ->
+      (ContextMenu { model | openState = enterItem index model.openState }, Cmd.none)
+
+    LeaveItem ->
+      (ContextMenu { model | openState = leaveItem model.openState }, Cmd.none)
+
+    EnterContainer ->
+      (ContextMenu { model | openState = enterContainer model.openState }, Cmd.none)
+
+    LeaveContainer ->
+      (ContextMenu { model | openState = leaveContainer model.openState }, Cmd.none)
 
 
 {-| The Subscription.
 -}
 subscriptions : ContextMenu context -> Sub (Msg context)
-subscriptions _ =
+subscriptions (ContextMenu model) =
   Sub.batch
     [ Mouse.moves Pos
-    , Mouse.downs (\_ -> Close)
+    , if shouldCloseOnClick model.openState then
+        Mouse.downs (\_ -> Close)
+      else
+        Sub.none
     , Window.resizes WindowSize
     ]
 
@@ -382,10 +447,23 @@ Arguments:
 -}
 open : (Msg context -> msg) -> context -> Attribute msg
 open transform context =
-  onWithOptions
-    "contextmenu"
-    { preventDefault = True, stopPropagation = True }
-    (Decode.succeed (transform (RequestOpen context)))
+  openIf True transform context
+
+
+{-| Similar to `open` but only works under particular condition.
+
+This is useful for debugging on browser.
+-}
+openIf : Bool -> (Msg context -> msg) -> context -> Attribute msg
+openIf condition transform context =
+  if condition then
+    onWithOptions
+      "contextmenu"
+      { preventDefault = True, stopPropagation = True }
+      (Decode.succeed (transform (RequestOpen context)))
+  else
+    on "contextmenu" (Decode.succeed (transform NoOp))
+
 
 
 {-| Shows the menu. This should be called at only one place.
@@ -401,7 +479,7 @@ Arguments:
 view : Config -> (Msg context -> msg) -> (context -> List (List (Item, msg))) -> ContextMenu context -> Html msg
 view config transform toItemGroups (ContextMenu model) =
   case model.openState of
-    Just (x, y, context) ->
+    Just (x, y, hover, context) ->
       let
         groups =
           toItemGroups context
@@ -411,7 +489,7 @@ view config transform toItemGroups (ContextMenu model) =
 
         groupsView =
           List.indexedMap
-            (itemGroupView config transform model.hoverIndex)
+            (itemGroupView config transform (getItemIndex hover))
             groups
       in
         case joinGroupsWithPartition groupsView of
@@ -445,12 +523,8 @@ view config transform toItemGroups (ContextMenu model) =
                         config.fontFamily
                         fontSize
                     )
-                -- , onWithOptions
-                --     "mousedown"
-                --     { preventDefault = False
-                --     , stopPropagation = True
-                --     }
-                --     (Decode.succeed (transform NoOp))
+                , onMouseEnter (transform EnterContainer)
+                , onMouseLeave (transform LeaveContainer)
                 ]
                 items
 
@@ -505,8 +579,8 @@ itemView config transform hoverIndex groupIndex index (Item item, msg) =
       if item.disabled then
         []
       else
-        [ onMouseEnter (transform <| HoverChanged (Just (groupIndex, index)))
-        , onMouseLeave (transform <| HoverChanged Nothing)
+        [ onMouseEnter (transform <| EnterItem (groupIndex, index))
+        , onMouseLeave (transform <| LeaveItem)
         , onMouseDown msg
         ]
 

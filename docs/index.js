@@ -11265,6 +11265,24 @@ var _user$project$ContextMenu$annotationView = F3(
 			});
 	});
 var _user$project$ContextMenu$disabledTextColor = A3(_elm_lang$core$Color$rgb, 200, 200, 200);
+var _user$project$ContextMenu$setHoverState = F2(
+	function (hover, openState) {
+		return A2(
+			_elm_lang$core$Maybe$map,
+			function (_p3) {
+				var _p4 = _p3;
+				return {ctor: '_Tuple4', _0: _p4._0, _1: _p4._1, _2: hover, _3: _p4._3};
+			},
+			openState);
+	});
+var _user$project$ContextMenu$getItemIndex = function (hover) {
+	var _p5 = hover;
+	if (_p5.ctor === 'ItemIndex') {
+		return _elm_lang$core$Maybe$Just(_p5._0);
+	} else {
+		return _elm_lang$core$Maybe$Nothing;
+	}
+};
 var _user$project$ContextMenu$Config = function (a) {
 	return function (b) {
 		return function (c) {
@@ -11289,8 +11307,40 @@ var _user$project$ContextMenu$Config = function (a) {
 var _user$project$ContextMenu$ContextMenu = function (a) {
 	return {ctor: 'ContextMenu', _0: a};
 };
-var _user$project$ContextMenu$HoverChanged = function (a) {
-	return {ctor: 'HoverChanged', _0: a};
+var _user$project$ContextMenu$None = {ctor: 'None'};
+var _user$project$ContextMenu$leaveContainer = function (openState) {
+	return A2(_user$project$ContextMenu$setHoverState, _user$project$ContextMenu$None, openState);
+};
+var _user$project$ContextMenu$ItemIndex = function (a) {
+	return {ctor: 'ItemIndex', _0: a};
+};
+var _user$project$ContextMenu$enterItem = F2(
+	function (index, openState) {
+		return A2(
+			_user$project$ContextMenu$setHoverState,
+			_user$project$ContextMenu$ItemIndex(index),
+			openState);
+	});
+var _user$project$ContextMenu$Container = {ctor: 'Container'};
+var _user$project$ContextMenu$shouldCloseOnClick = function (openState) {
+	var _p6 = openState;
+	if (_p6.ctor === 'Just') {
+		return !_elm_lang$core$Native_Utils.eq(_p6._0._2, _user$project$ContextMenu$Container);
+	} else {
+		return true;
+	}
+};
+var _user$project$ContextMenu$leaveItem = function (openState) {
+	return A2(_user$project$ContextMenu$setHoverState, _user$project$ContextMenu$Container, openState);
+};
+var _user$project$ContextMenu$enterContainer = function (openState) {
+	return A2(_user$project$ContextMenu$setHoverState, _user$project$ContextMenu$Container, openState);
+};
+var _user$project$ContextMenu$LeaveContainer = {ctor: 'LeaveContainer'};
+var _user$project$ContextMenu$EnterContainer = {ctor: 'EnterContainer'};
+var _user$project$ContextMenu$LeaveItem = {ctor: 'LeaveItem'};
+var _user$project$ContextMenu$EnterItem = function (a) {
+	return {ctor: 'EnterItem', _0: a};
 };
 var _user$project$ContextMenu$WindowSize = function (a) {
 	return {ctor: 'WindowSize', _0: a};
@@ -11298,24 +11348,25 @@ var _user$project$ContextMenu$WindowSize = function (a) {
 var _user$project$ContextMenu$init = {
 	ctor: '_Tuple2',
 	_0: _user$project$ContextMenu$ContextMenu(
-		{openState: _elm_lang$core$Maybe$Nothing, x: 0, y: 0, windowWidth: 9999, windowHeight: 9999, hoverIndex: _elm_lang$core$Maybe$Nothing}),
+		{openState: _elm_lang$core$Maybe$Nothing, x: 0, y: 0, windowWidth: 9999, windowHeight: 9999}),
 	_1: A2(_elm_lang$core$Task$perform, _user$project$ContextMenu$WindowSize, _elm_lang$window$Window$size)
 };
 var _user$project$ContextMenu$Pos = function (a) {
 	return {ctor: 'Pos', _0: a};
 };
 var _user$project$ContextMenu$Close = {ctor: 'Close'};
-var _user$project$ContextMenu$subscriptions = function (_p3) {
+var _user$project$ContextMenu$subscriptions = function (_p7) {
+	var _p8 = _p7;
 	return _elm_lang$core$Platform_Sub$batch(
 		{
 			ctor: '::',
 			_0: _elm_lang$mouse$Mouse$moves(_user$project$ContextMenu$Pos),
 			_1: {
 				ctor: '::',
-				_0: _elm_lang$mouse$Mouse$downs(
-					function (_p4) {
+				_0: _user$project$ContextMenu$shouldCloseOnClick(_p8._0.openState) ? _elm_lang$mouse$Mouse$downs(
+					function (_p9) {
 						return _user$project$ContextMenu$Close;
-					}),
+					}) : _elm_lang$core$Platform_Sub$none,
 				_1: {
 					ctor: '::',
 					_0: _elm_lang$window$Window$resizes(_user$project$ContextMenu$WindowSize),
@@ -11328,25 +11379,25 @@ var _user$project$ContextMenu$Open = function (a) {
 	return {ctor: 'Open', _0: a};
 };
 var _user$project$ContextMenu$update = F2(
-	function (msg, _p5) {
-		var _p6 = _p5;
-		var _p9 = _p6._0;
-		var _p7 = msg;
-		switch (_p7.ctor) {
+	function (msg, _p10) {
+		var _p11 = _p10;
+		var _p14 = _p11._0;
+		var _p12 = msg;
+		switch (_p12.ctor) {
 			case 'NoOp':
 				return {
 					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(_p9),
+					_0: _user$project$ContextMenu$ContextMenu(_p14),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'RequestOpen':
 				return {
 					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(_p9),
+					_0: _user$project$ContextMenu$ContextMenu(_p14),
 					_1: A2(
 						_elm_lang$core$Task$perform,
-						function (_p8) {
-							return _user$project$ContextMenu$Open(_p7._0);
+						function (_p13) {
+							return _user$project$ContextMenu$Open(_p12._0);
 						},
 						_elm_lang$core$Process$sleep(0))
 				};
@@ -11355,10 +11406,10 @@ var _user$project$ContextMenu$update = F2(
 					ctor: '_Tuple2',
 					_0: _user$project$ContextMenu$ContextMenu(
 						_elm_lang$core$Native_Utils.update(
-							_p9,
+							_p14,
 							{
 								openState: _elm_lang$core$Maybe$Just(
-									{ctor: '_Tuple3', _0: _p9.x, _1: _p9.y, _2: _p7._0})
+									{ctor: '_Tuple4', _0: _p14.x, _1: _p14.y, _2: _user$project$ContextMenu$None, _3: _p12._0})
 							})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -11367,8 +11418,8 @@ var _user$project$ContextMenu$update = F2(
 					ctor: '_Tuple2',
 					_0: _user$project$ContextMenu$ContextMenu(
 						_elm_lang$core$Native_Utils.update(
-							_p9,
-							{openState: _elm_lang$core$Maybe$Nothing, hoverIndex: _elm_lang$core$Maybe$Nothing})),
+							_p14,
+							{openState: _elm_lang$core$Maybe$Nothing})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'Pos':
@@ -11376,8 +11427,8 @@ var _user$project$ContextMenu$update = F2(
 					ctor: '_Tuple2',
 					_0: _user$project$ContextMenu$ContextMenu(
 						_elm_lang$core$Native_Utils.update(
-							_p9,
-							{x: _p7._0.x, y: _p7._0.y})),
+							_p14,
+							{x: _p12._0.x, y: _p12._0.y})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'WindowSize':
@@ -11385,8 +11436,41 @@ var _user$project$ContextMenu$update = F2(
 					ctor: '_Tuple2',
 					_0: _user$project$ContextMenu$ContextMenu(
 						_elm_lang$core$Native_Utils.update(
-							_p9,
-							{windowWidth: _p7._0.width, windowHeight: _p7._0.height})),
+							_p14,
+							{windowWidth: _p12._0.width, windowHeight: _p12._0.height})),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'EnterItem':
+				return {
+					ctor: '_Tuple2',
+					_0: _user$project$ContextMenu$ContextMenu(
+						_elm_lang$core$Native_Utils.update(
+							_p14,
+							{
+								openState: A2(_user$project$ContextMenu$enterItem, _p12._0, _p14.openState)
+							})),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'LeaveItem':
+				return {
+					ctor: '_Tuple2',
+					_0: _user$project$ContextMenu$ContextMenu(
+						_elm_lang$core$Native_Utils.update(
+							_p14,
+							{
+								openState: _user$project$ContextMenu$leaveItem(_p14.openState)
+							})),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'EnterContainer':
+				return {
+					ctor: '_Tuple2',
+					_0: _user$project$ContextMenu$ContextMenu(
+						_elm_lang$core$Native_Utils.update(
+							_p14,
+							{
+								openState: _user$project$ContextMenu$enterContainer(_p14.openState)
+							})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
@@ -11394,8 +11478,10 @@ var _user$project$ContextMenu$update = F2(
 					ctor: '_Tuple2',
 					_0: _user$project$ContextMenu$ContextMenu(
 						_elm_lang$core$Native_Utils.update(
-							_p9,
-							{hoverIndex: _p7._0})),
+							_p14,
+							{
+								openState: _user$project$ContextMenu$leaveContainer(_p14.openState)
+							})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
@@ -11403,42 +11489,50 @@ var _user$project$ContextMenu$update = F2(
 var _user$project$ContextMenu$RequestOpen = function (a) {
 	return {ctor: 'RequestOpen', _0: a};
 };
-var _user$project$ContextMenu$open = F2(
-	function (transform, context) {
-		return A3(
+var _user$project$ContextMenu$NoOp = {ctor: 'NoOp'};
+var _user$project$ContextMenu$openIf = F3(
+	function (condition, transform, context) {
+		return condition ? A3(
 			_elm_lang$html$Html_Events$onWithOptions,
 			'contextmenu',
 			{preventDefault: true, stopPropagation: true},
 			_elm_lang$core$Json_Decode$succeed(
 				transform(
-					_user$project$ContextMenu$RequestOpen(context))));
+					_user$project$ContextMenu$RequestOpen(context)))) : A2(
+			_elm_lang$html$Html_Events$on,
+			'contextmenu',
+			_elm_lang$core$Json_Decode$succeed(
+				transform(_user$project$ContextMenu$NoOp)));
 	});
-var _user$project$ContextMenu$NoOp = {ctor: 'NoOp'};
+var _user$project$ContextMenu$open = F2(
+	function (transform, context) {
+		return A3(_user$project$ContextMenu$openIf, true, transform, context);
+	});
 var _user$project$ContextMenu$Item = function (a) {
 	return {ctor: 'Item', _0: a};
 };
 var _user$project$ContextMenu$disabled = F2(
-	function (disabled_, _p10) {
-		var _p11 = _p10;
+	function (disabled_, _p15) {
+		var _p16 = _p15;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p11._0,
+				_p16._0,
 				{disabled: disabled_}));
 	});
 var _user$project$ContextMenu$shortcut = F2(
-	function (shortcut, _p12) {
-		var _p13 = _p12;
+	function (shortcut, _p17) {
+		var _p18 = _p17;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p13._0,
+				_p18._0,
 				{shortcut: shortcut}));
 	});
 var _user$project$ContextMenu$icon = F3(
-	function (icon_, color, _p14) {
-		var _p15 = _p14;
+	function (icon_, color, _p19) {
+		var _p20 = _p19;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p15._0,
+				_p20._0,
 				{
 					icon: _elm_lang$core$Maybe$Just(
 						{ctor: '_Tuple2', _0: icon_, _1: color})
@@ -11488,8 +11582,8 @@ var _user$project$ContextMenu$calculateX = F5(
 			_elm_lang$core$Basics$max,
 			0,
 			function () {
-				var _p16 = direction;
-				if (_p16.ctor === 'LeftBottom') {
+				var _p21 = direction;
+				if (_p21.ctor === 'LeftBottom') {
 					return (_elm_lang$core$Native_Utils.cmp(x - menuWidth, 0) < 0) ? (_elm_lang$core$Native_Utils.eq(overflow, _user$project$ContextMenu$Shift) ? 0 : x) : (x - menuWidth);
 				} else {
 					return (_elm_lang$core$Native_Utils.cmp(x + menuWidth, windowWidth) > 0) ? (_elm_lang$core$Native_Utils.eq(overflow, _user$project$ContextMenu$Shift) ? (windowWidth - menuWidth) : (x - menuWidth)) : x;
@@ -11517,32 +11611,32 @@ var _user$project$ContextMenu$defaultConfig = {
 	fontFamily: 'initial'
 };
 var _user$project$ContextMenu$itemView = F6(
-	function (config, transform, hoverIndex, groupIndex, index, _p17) {
-		var _p18 = _p17;
-		var _p21 = _p18._0._0;
+	function (config, transform, hoverIndex, groupIndex, index, _p22) {
+		var _p23 = _p22;
+		var _p26 = _p23._0._0;
 		var content = function () {
-			var _p19 = _p21.content;
-			if (_p19.ctor === 'Text') {
+			var _p24 = _p26.content;
+			if (_p24.ctor === 'Text') {
 				return A2(
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html_Attributes$style(
-							_user$project$Styles$text(_p21.height)),
+							_user$project$Styles$text(_p26.height)),
 						_1: {ctor: '[]'}
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(_p19._0),
+						_0: _elm_lang$html$Html$text(_p24._0),
 						_1: {ctor: '[]'}
 					});
 			} else {
-				return _p19._0(_p21.disabled);
+				return _p24._0(_p26.disabled);
 			}
 		}();
 		var icon = function () {
-			var _p20 = _p21.icon;
-			if (_p20.ctor === 'Just') {
+			var _p25 = _p26.icon;
+			if (_p25.ctor === 'Just') {
 				return A2(
 					_elm_lang$html$Html$map,
 					_elm_lang$core$Basics$never,
@@ -11557,8 +11651,8 @@ var _user$project$ContextMenu$itemView = F6(
 						{
 							ctor: '::',
 							_0: A2(
-								_p20._0._0,
-								_p21.disabled ? _user$project$ContextMenu$disabledTextColor : _p20._0._1,
+								_p25._0._0,
+								_p26.disabled ? _user$project$ContextMenu$disabledTextColor : _p25._0._1,
 								_user$project$ContextMenu$fontSize),
 							_1: {ctor: '[]'}
 						}));
@@ -11566,21 +11660,19 @@ var _user$project$ContextMenu$itemView = F6(
 				return _elm_lang$html$Html$text('');
 			}
 		}();
-		var events = _p21.disabled ? {ctor: '[]'} : {
+		var events = _p26.disabled ? {ctor: '[]'} : {
 			ctor: '::',
 			_0: _elm_lang$html$Html_Events$onMouseEnter(
 				transform(
-					_user$project$ContextMenu$HoverChanged(
-						_elm_lang$core$Maybe$Just(
-							{ctor: '_Tuple2', _0: groupIndex, _1: index})))),
+					_user$project$ContextMenu$EnterItem(
+						{ctor: '_Tuple2', _0: groupIndex, _1: index}))),
 			_1: {
 				ctor: '::',
 				_0: _elm_lang$html$Html_Events$onMouseLeave(
-					transform(
-						_user$project$ContextMenu$HoverChanged(_elm_lang$core$Maybe$Nothing))),
+					transform(_user$project$ContextMenu$LeaveItem)),
 				_1: {
 					ctor: '::',
-					_0: _elm_lang$html$Html_Events$onMouseDown(_p18._1),
+					_0: _elm_lang$html$Html_Events$onMouseDown(_p23._1),
 					_1: {ctor: '[]'}
 				}
 			}
@@ -11596,20 +11688,20 @@ var _user$project$ContextMenu$itemView = F6(
 				_user$project$ContextMenu$disabledTextColor,
 				config.invertText,
 				_elm_lang$core$Native_Utils.eq(config.cursor, _user$project$ContextMenu$Pointer),
-				_p21.height,
+				_p26.height,
 				hovered,
-				_p21.disabled));
+				_p26.disabled));
 		var shortCut = A2(
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html_Attributes$style(
-					A3(_user$project$Styles$shortcut, _user$project$ContextMenu$shortcutTextColor, _p21.height, hovered)),
+					A3(_user$project$Styles$shortcut, _user$project$ContextMenu$shortcutTextColor, _p26.height, hovered)),
 				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
-				_0: _elm_lang$html$Html$text(_p21.shortcut),
+				_0: _elm_lang$html$Html$text(_p26.shortcut),
 				_1: {ctor: '[]'}
 			});
 		return A2(
@@ -11637,44 +11729,58 @@ var _user$project$ContextMenu$itemGroupView = F5(
 			items);
 	});
 var _user$project$ContextMenu$view = F4(
-	function (config, transform, toItemGroups, _p22) {
-		var _p23 = _p22;
-		var _p26 = _p23._0;
-		var _p24 = _p26.openState;
-		if (_p24.ctor === 'Just') {
-			var groups = toItemGroups(_p24._0._2);
+	function (config, transform, toItemGroups, _p27) {
+		var _p28 = _p27;
+		var _p31 = _p28._0;
+		var _p29 = _p31.openState;
+		if (_p29.ctor === 'Just') {
+			var groups = toItemGroups(_p29._0._3);
 			var itemGroups = A2(
 				_elm_lang$core$List$map,
 				_elm_lang$core$List$map(_elm_lang$core$Tuple$first),
 				groups);
 			var groupsView = A2(
 				_elm_lang$core$List$indexedMap,
-				A3(_user$project$ContextMenu$itemGroupView, config, transform, _p26.hoverIndex),
+				A3(
+					_user$project$ContextMenu$itemGroupView,
+					config,
+					transform,
+					_user$project$ContextMenu$getItemIndex(_p29._0._2)),
 				groups);
-			var _p25 = _user$project$ContextMenu$joinGroupsWithPartition(groupsView);
-			if (_p25.ctor === 'Just') {
+			var _p30 = _user$project$ContextMenu$joinGroupsWithPartition(groupsView);
+			if (_p30.ctor === 'Just') {
 				var y_ = A4(
 					_user$project$ContextMenu$calculateY,
 					config.overflowY,
-					_p26.windowHeight,
+					_p31.windowHeight,
 					_user$project$ContextMenu$calculateMenuHeight(itemGroups),
-					_p24._0._1);
+					_p29._0._1);
 				var x_ = A5(
 					_user$project$ContextMenu$calculateX,
 					config.direction,
 					config.overflowX,
-					_p26.windowWidth,
+					_p31.windowWidth,
 					_user$project$ContextMenu$menuWidthWithBorders(config.width),
-					_p24._0._0);
+					_p29._0._0);
 				return A2(
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html_Attributes$style(
 							A9(_user$project$Styles$container, config.containerColor, _user$project$ContextMenu$containerBorderWidth, _user$project$ContextMenu$containerPadding, config.rounded, config.width, x_, y_, config.fontFamily, _user$project$ContextMenu$fontSize)),
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Events$onMouseEnter(
+								transform(_user$project$ContextMenu$EnterContainer)),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onMouseLeave(
+									transform(_user$project$ContextMenu$LeaveContainer)),
+								_1: {ctor: '[]'}
+							}
+						}
 					},
-					_p25._0);
+					_p30._0);
 			} else {
 				return _elm_lang$html$Html$text('');
 			}
