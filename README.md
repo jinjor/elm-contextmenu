@@ -1,4 +1,4 @@
-elm-context-menu
+elm-contextmenu
 ----
 
 Flexible context menu for Elm ([Demo](https://jinjor.github.io/elm-contextmenu/))
