@@ -35,8 +35,8 @@ import Json.Decode as Decode
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Mouse
-import Window
+import Mouse exposing (Position)
+import Window exposing (Size)
 
 import Styles as S
 
@@ -46,13 +46,7 @@ import Styles as S
 {-| The Model. Put whatever context you like, which is used to create menu items.
 -}
 type ContextMenu context =
-  ContextMenu
-    { openState : OpenState context
-    , x : Int
-    , y : Int
-    , windowWidth : Int
-    , windowHeight : Int
-    }
+  ContextMenu { openState : OpenState context }
 
 
 type HoverState
@@ -69,7 +63,7 @@ getItemIndex hover =
 
 
 type alias OpenState context =
-  Maybe (Int, Int, HoverState, context)
+  Maybe (Position, Size, HoverState, context)
 
 
 shouldCloseOnClick : OpenState context -> Bool
@@ -85,7 +79,8 @@ shouldCloseOnClick openState =
 setHoverState : HoverState -> OpenState context -> OpenState context
 setHoverState hover openState =
   openState
-    |> Maybe.map (\(x, y, _, context) -> (x, y, hover, context))
+    |> Maybe.map
+      (\(mouse, window, _, context) -> (mouse, window, hover, context))
 
 
 enterItem : (Int, Int) -> OpenState context -> OpenState context
@@ -115,11 +110,9 @@ leaveContainer openState =
 -}
 type Msg context
   = NoOp
-  | RequestOpen context
-  | Open context
+  | RequestOpen context Position
+  | Open context Position Size
   | Close
-  | Pos Mouse.Position
-  | WindowSize Window.Size
   | EnterItem (Int, Int)
   | LeaveItem
   | EnterContainer
@@ -130,15 +123,7 @@ type Msg context
 -}
 init : (ContextMenu context, Cmd (Msg context))
 init =
-  ( ContextMenu
-    { openState = Nothing
-    , x = 0
-    , y = 0
-    , windowWidth = 9999 -- dummy
-    , windowHeight = 9999 -- dummy
-    }
-  , Task.perform WindowSize Window.size
-  )
+  ( ContextMenu { openState = Nothing }, Cmd.none )
 
 
 {-| The update function.
@@ -147,34 +132,40 @@ update : Msg context -> ContextMenu context -> (ContextMenu context, Cmd (Msg co
 update msg (ContextMenu model) =
   case msg of
     NoOp ->
-      (ContextMenu model, Cmd.none)
+      ( ContextMenu model, Cmd.none )
 
-    RequestOpen context ->
-      (ContextMenu model, Task.perform (\_ -> Open context) (Process.sleep 0))
+    RequestOpen context mouse ->
+      ( ContextMenu model
+      , Task.perform (Open context mouse) Window.size
+      )
 
-    Open context ->
-      (ContextMenu { model | openState = Just (model.x, model.y, None, context) }, Cmd.none)
+    Open context mouse window ->
+      ( ContextMenu { model | openState = Just (mouse, window, None, context) }
+      , Cmd.none
+      )
 
     Close ->
-      (ContextMenu { model | openState = Nothing }, Cmd.none)
-
-    Pos { x, y } ->
-      (ContextMenu { model | x = x, y = y }, Cmd.none)
-
-    WindowSize { width, height } ->
-      (ContextMenu { model | windowWidth = width, windowHeight = height }, Cmd.none)
+      ( ContextMenu { model | openState = Nothing }, Cmd.none )
 
     EnterItem index ->
-      (ContextMenu { model | openState = enterItem index model.openState }, Cmd.none)
+      ( ContextMenu { model | openState = enterItem index model.openState }
+      , Cmd.none
+      )
 
     LeaveItem ->
-      (ContextMenu { model | openState = leaveItem model.openState }, Cmd.none)
+      ( ContextMenu { model | openState = leaveItem model.openState }
+      , Cmd.none
+      )
 
     EnterContainer ->
-      (ContextMenu { model | openState = enterContainer model.openState }, Cmd.none)
+      ( ContextMenu { model | openState = enterContainer model.openState }
+      , Cmd.none
+      )
 
     LeaveContainer ->
-      (ContextMenu { model | openState = leaveContainer model.openState }, Cmd.none)
+      ( ContextMenu { model | openState = leaveContainer model.openState }
+      , Cmd.none
+      )
 
 
 {-| The Subscription.
@@ -182,12 +173,10 @@ update msg (ContextMenu model) =
 subscriptions : ContextMenu context -> Sub (Msg context)
 subscriptions (ContextMenu model) =
   Sub.batch
-    [ Mouse.moves Pos
-    , if shouldCloseOnClick model.openState then
+    [ if shouldCloseOnClick model.openState then
         Mouse.downs (\_ -> Close)
       else
         Sub.none
-    , Window.resizes WindowSize
     ]
 
 
@@ -476,7 +465,10 @@ openIf condition transform context =
     onWithOptions
       "contextmenu"
       { preventDefault = True, stopPropagation = True }
-      (Decode.succeed (transform (RequestOpen context)))
+      ( Mouse.position
+          |> Decode.map (RequestOpen context)
+          |> Decode.map transform
+      )
   else
     on "contextmenu" (Decode.succeed (transform NoOp))
 
@@ -495,7 +487,7 @@ Arguments:
 view : Config -> (Msg context -> msg) -> (context -> List (List (Item, msg))) -> ContextMenu context -> Html msg
 view config transform toItemGroups (ContextMenu model) =
   case model.openState of
-    Just (x, y, hover, context) ->
+    Just (mouse, window, hover, context) ->
       let
         groups =
           toItemGroups context
@@ -515,16 +507,16 @@ view config transform toItemGroups (ContextMenu model) =
                 calculateX
                   config.direction
                   config.overflowX
-                  model.windowWidth
+                  window.width
                   (menuWidthWithBorders config.width)
-                  x
+                  mouse.x
 
               y_ =
                 calculateY
                   config.overflowY
-                  model.windowHeight
+                  window.height
                   (calculateMenuHeight itemGroups)
-                  y
+                  mouse.y
             in
               div
                 [ style
