@@ -97,7 +97,7 @@ backgroundStyles =
   [ ("left", "10%")
   , ("right", "10%")
   , ("top", "10%")
-  , ("bottom", "10%")
+  , ("bottom", "-10%")
   , ("position", "absolute")
   , ("background-color", "#cdb")
   ]

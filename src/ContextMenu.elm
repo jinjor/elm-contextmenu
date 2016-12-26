@@ -465,12 +465,19 @@ openIf condition transform context =
     onWithOptions
       "contextmenu"
       { preventDefault = True, stopPropagation = True }
-      ( Mouse.position
+      ( position
           |> Decode.map (RequestOpen context)
           |> Decode.map transform
       )
   else
     on "contextmenu" (Decode.succeed (transform NoOp))
+
+
+position : Decode.Decoder Position
+position =
+  Decode.map2 Position
+    (Decode.field "clientX" Decode.int)
+    (Decode.field "clientY" Decode.int)
 
 
 

@@ -11168,6 +11168,11 @@ var _user$project$Styles$partition = F2(
 		};
 	});
 
+var _user$project$ContextMenu$position = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_elm_lang$mouse$Mouse$Position,
+	A2(_elm_lang$core$Json_Decode$field, 'clientX', _elm_lang$core$Json_Decode$int),
+	A2(_elm_lang$core$Json_Decode$field, 'clientY', _elm_lang$core$Json_Decode$int));
 var _user$project$ContextMenu$annotationFontSize = 10;
 var _user$project$ContextMenu$annotationHeight = 12;
 var _user$project$ContextMenu$fontSize = 13;
@@ -11474,7 +11479,7 @@ var _user$project$ContextMenu$openIf = F3(
 				A2(
 					_elm_lang$core$Json_Decode$map,
 					_user$project$ContextMenu$RequestOpen(context),
-					_elm_lang$mouse$Mouse$position))) : A2(
+					_user$project$ContextMenu$position))) : A2(
 			_elm_lang$html$Html_Events$on,
 			'contextmenu',
 			_elm_lang$core$Json_Decode$succeed(
@@ -11830,7 +11835,7 @@ var _user$project$Main$backgroundStyles = {
 			_0: {ctor: '_Tuple2', _0: 'top', _1: '10%'},
 			_1: {
 				ctor: '::',
-				_0: {ctor: '_Tuple2', _0: 'bottom', _1: '10%'},
+				_0: {ctor: '_Tuple2', _0: 'bottom', _1: '-10%'},
 				_1: {
 					ctor: '::',
 					_0: {ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
