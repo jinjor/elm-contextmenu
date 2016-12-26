@@ -1,5 +1,5 @@
 {
-    "version": "1.0.2",
+    "version": "1.0.3",
     "summary": "Flexible context menu for Elm",
     "repository": "https://github.com/jinjor/elm-contextmenu.git",
     "license": "BSD3",
