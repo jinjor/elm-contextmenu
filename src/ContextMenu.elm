@@ -2,7 +2,7 @@ module ContextMenu exposing
   ( ContextMenu, Msg, init, update, subscriptions
   , Item, item, itemWithAnnotation, disabled, icon, shortcut
   , Direction(..), Overflow(..), Cursor(..), Config, defaultConfig
-  , view, open, openIf
+  , view, open, openIf, setOnDeHover
   )
 
 {-| The ContextMenu component that follows the Elm Architecture.
@@ -46,7 +46,7 @@ import Styles as S
 {-| The Model. Put whatever context you like, which is used to create menu items.
 -}
 type ContextMenu context =
-  ContextMenu { openState : OpenState context }
+  ContextMenu { openState : OpenState context, closeOnDeHover : Bool }
 
 
 type HoverState
@@ -66,11 +66,11 @@ type alias OpenState context =
   Maybe (Position, Size, HoverState, context)
 
 
-shouldCloseOnClick : OpenState context -> Bool
-shouldCloseOnClick openState =
+shouldCloseOnClick : OpenState context -> Bool -> Bool
+shouldCloseOnClick openState deHover =
   case openState of
     Just (_, _, hover, _) ->
-      hover /= Container
+      if deHover then False else hover /= Container
 
     Nothing ->
       True
@@ -81,6 +81,10 @@ setHoverState hover openState =
   openState
     |> Maybe.map
       (\(mouse, window, _, context) -> (mouse, window, hover, context))
+
+setOnDeHover : Bool -> ContextMenu context -> ContextMenu context
+setOnDeHover deHover (ContextMenu model) =
+  (ContextMenu {model | closeOnDeHover = deHover})
 
 
 enterItem : (Int, Int) -> OpenState context -> OpenState context
@@ -123,7 +127,7 @@ type Msg context
 -}
 init : (ContextMenu context, Cmd (Msg context))
 init =
-  ( ContextMenu { openState = Nothing }, Cmd.none )
+  ( ContextMenu { openState = Nothing, closeOnDeHover = False }, Cmd.none )
 
 
 {-| The update function.
@@ -163,9 +167,7 @@ update msg (ContextMenu model) =
       )
 
     LeaveContainer ->
-      ( ContextMenu { model | openState = leaveContainer model.openState }
-      , Cmd.none
-      )
+      if model.closeOnDeHover then update Close (ContextMenu { model | openState = leaveContainer model.openState }) else ( ContextMenu { model | openState = leaveContainer model.openState }, Cmd.none)
 
 
 {-| The Subscription.
@@ -173,7 +175,7 @@ update msg (ContextMenu model) =
 subscriptions : ContextMenu context -> Sub (Msg context)
 subscriptions (ContextMenu model) =
   Sub.batch
-    [ if shouldCloseOnClick model.openState then
+    [ if shouldCloseOnClick model.openState model.closeOnDeHover then
         Mouse.downs (\_ -> Close)
       else
         Sub.none
