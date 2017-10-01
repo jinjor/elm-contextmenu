@@ -19,7 +19,7 @@ module ContextMenu
         , view
         , open
         , openIf
-        , setOnDeHover
+        , setOnDehover
         )
 
 {-| The ContextMenu component that follows the Elm Architecture.
@@ -41,6 +41,8 @@ The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org
 # View
 @docs view, open, openIf
 
+# Advanced
+@docs setOnDehover
 -}
 
 import Task
@@ -61,7 +63,7 @@ import Styles as S
 {-| The Model. Put whatever context you like, which is used to create menu items.
 -}
 type ContextMenu context
-    = ContextMenu { openState : OpenState context, closeOnDeHover : Bool }
+    = ContextMenu { openState : OpenState context, closeOnDehover : Bool }
 
 
 type HoverState
@@ -84,11 +86,11 @@ type alias OpenState context =
     Maybe ( Position, Size, HoverState, context )
 
 
-shouldCloseOnClick : OpenState context -> Bool -> Bool
-shouldCloseOnClick openState deHover =
+shouldCloseOnClick : Bool -> OpenState context -> Bool
+shouldCloseOnClick closeOnDehover openState =
     case openState of
         Just ( _, _, hover, _ ) ->
-            if deHover then
+            if closeOnDehover then
                 False
             else
                 hover /= Container
@@ -104,9 +106,15 @@ setHoverState hover openState =
             (\( mouse, window, _, context ) -> ( mouse, window, hover, context ))
 
 
-setOnDeHover : Bool -> ContextMenu context -> ContextMenu context
-setOnDeHover deHover (ContextMenu model) =
-    (ContextMenu { model | closeOnDeHover = deHover })
+{-| This switches when the menu should be closed.
+
+   - True: Closes when mouse leaves the menu (keeps opening on cliking)
+   - False(default): Closes when somewhere in the window is clicked
+
+-}
+setOnDehover : Bool -> ContextMenu context -> ContextMenu context
+setOnDehover closeOnDehover (ContextMenu model) =
+    (ContextMenu { model | closeOnDehover = closeOnDehover })
 
 
 enterItem : ( Int, Int ) -> OpenState context -> OpenState context
@@ -150,7 +158,7 @@ type Msg context
 -}
 init : ( ContextMenu context, Cmd (Msg context) )
 init =
-    ( ContextMenu { openState = Nothing, closeOnDeHover = False }, Cmd.none )
+    ( ContextMenu { openState = Nothing, closeOnDehover = False }, Cmd.none )
 
 
 {-| The update function.
@@ -190,7 +198,7 @@ update msg (ContextMenu model) =
             )
 
         LeaveContainer ->
-            if model.closeOnDeHover then
+            if model.closeOnDehover then
                 update Close (ContextMenu { model | openState = leaveContainer model.openState })
             else
                 ( ContextMenu { model | openState = leaveContainer model.openState }, Cmd.none )
@@ -201,7 +209,7 @@ update msg (ContextMenu model) =
 subscriptions : ContextMenu context -> Sub (Msg context)
 subscriptions (ContextMenu model) =
     Sub.batch
-        [ if shouldCloseOnClick model.openState model.closeOnDeHover then
+        [ if shouldCloseOnClick model.closeOnDehover model.openState then
             Mouse.downs (\_ -> Close)
           else
             Sub.none

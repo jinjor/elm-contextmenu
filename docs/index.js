@@ -11320,18 +11320,18 @@ var _user$project$ContextMenu$Config = function (a) {
 var _user$project$ContextMenu$ContextMenu = function (a) {
 	return {ctor: 'ContextMenu', _0: a};
 };
-var _user$project$ContextMenu$setOnDeHover = F2(
-	function (deHover, _p6) {
+var _user$project$ContextMenu$setOnDehover = F2(
+	function (closeOnDehover, _p6) {
 		var _p7 = _p6;
 		return _user$project$ContextMenu$ContextMenu(
 			_elm_lang$core$Native_Utils.update(
 				_p7._0,
-				{closeOnDeHover: deHover}));
+				{closeOnDehover: closeOnDehover}));
 	});
 var _user$project$ContextMenu$init = {
 	ctor: '_Tuple2',
 	_0: _user$project$ContextMenu$ContextMenu(
-		{openState: _elm_lang$core$Maybe$Nothing, closeOnDeHover: false}),
+		{openState: _elm_lang$core$Maybe$Nothing, closeOnDehover: false}),
 	_1: _elm_lang$core$Platform_Cmd$none
 };
 var _user$project$ContextMenu$None = {ctor: 'None'};
@@ -11350,10 +11350,10 @@ var _user$project$ContextMenu$enterItem = F2(
 	});
 var _user$project$ContextMenu$Container = {ctor: 'Container'};
 var _user$project$ContextMenu$shouldCloseOnClick = F2(
-	function (openState, deHover) {
+	function (closeOnDehover, openState) {
 		var _p8 = openState;
 		if (_p8.ctor === 'Just') {
-			return deHover ? false : (!_elm_lang$core$Native_Utils.eq(_p8._0._2, _user$project$ContextMenu$Container));
+			return closeOnDehover ? false : (!_elm_lang$core$Native_Utils.eq(_p8._0._2, _user$project$ContextMenu$Container));
 		} else {
 			return true;
 		}
@@ -11377,7 +11377,7 @@ var _user$project$ContextMenu$subscriptions = function (_p9) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{
 			ctor: '::',
-			_0: A2(_user$project$ContextMenu$shouldCloseOnClick, _p12.openState, _p12.closeOnDeHover) ? _elm_lang$mouse$Mouse$downs(
+			_0: A2(_user$project$ContextMenu$shouldCloseOnClick, _p12.closeOnDehover, _p12.openState) ? _elm_lang$mouse$Mouse$downs(
 				function (_p11) {
 					return _user$project$ContextMenu$Close;
 				}) : _elm_lang$core$Platform_Sub$none,
@@ -11466,7 +11466,7 @@ var _user$project$ContextMenu$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				default:
-					if (_p16.closeOnDeHover) {
+					if (_p16.closeOnDehover) {
 						var _v9 = _user$project$ContextMenu$Close,
 							_v10 = _user$project$ContextMenu$ContextMenu(
 							_elm_lang$core$Native_Utils.update(
@@ -12016,17 +12016,12 @@ var _user$project$Main$ContextMenuMsg = function (a) {
 	return {ctor: 'ContextMenuMsg', _0: a};
 };
 var _user$project$Main$init = function () {
-	var config = _user$project$Configs$winDesktop;
 	var _p1 = _user$project$ContextMenu$init;
 	var contextMenu = _p1._0;
 	var msg = _p1._1;
 	return A2(
 		_elm_lang$core$Platform_Cmd_ops['!'],
-		{
-			contextMenu: A2(_user$project$ContextMenu$setOnDeHover, true, contextMenu),
-			config: config,
-			message: ''
-		},
+		{contextMenu: contextMenu, config: _user$project$Configs$winChrome, message: ''},
 		{
 			ctor: '::',
 			_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ContextMenuMsg, msg),

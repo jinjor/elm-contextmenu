@@ -41,14 +41,9 @@ init =
     let
         ( contextMenu, msg ) =
             ContextMenu.init
-
-        config =
-            Configs.winDesktop
     in
-        { contextMenu =
-            contextMenu
-                |> ContextMenu.setOnDeHover True
-        , config = config
+        { contextMenu = contextMenu
+        , config = Configs.winChrome
         , message = ""
         }
             ! [ Cmd.map ContextMenuMsg msg ]
