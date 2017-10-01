@@ -1564,8 +1564,7 @@ function toString(v)
 	var type = typeof v;
 	if (type === 'function')
 	{
-		var name = v.func ? v.func.name : v.name;
-		return '<function' + (name === '' ? '' : ':') + name + '>';
+		return '<function>';
 	}
 
 	if (type === 'boolean')
@@ -2072,6 +2071,13 @@ var _elm_lang$core$List$sortWith = _elm_lang$core$Native_List.sortWith;
 var _elm_lang$core$List$sortBy = _elm_lang$core$Native_List.sortBy;
 var _elm_lang$core$List$sort = function (xs) {
 	return A2(_elm_lang$core$List$sortBy, _elm_lang$core$Basics$identity, xs);
+};
+var _elm_lang$core$List$singleton = function (value) {
+	return {
+		ctor: '::',
+		_0: value,
+		_1: {ctor: '[]'}
+	};
 };
 var _elm_lang$core$List$drop = F2(
 	function (n, list) {
@@ -2891,7 +2897,7 @@ function endsWith(sub, str)
 function indexes(sub, str)
 {
 	var subLen = sub.length;
-	
+
 	if (subLen < 1)
 	{
 		return _elm_lang$core$Native_List.Nil;
@@ -2904,74 +2910,78 @@ function indexes(sub, str)
 	{
 		is.push(i);
 		i = i + subLen;
-	}	
-	
+	}
+
 	return _elm_lang$core$Native_List.fromArray(is);
 }
+
 
 function toInt(s)
 {
 	var len = s.length;
+
+	// if empty
 	if (len === 0)
 	{
-		return _elm_lang$core$Result$Err("could not convert string '" + s + "' to an Int" );
+		return intErr(s);
 	}
-	var start = 0;
-	if (s[0] === '-')
+
+	// if hex
+	var c = s[0];
+	if (c === '0' && s[1] === 'x')
 	{
-		if (len === 1)
+		for (var i = 2; i < len; ++i)
 		{
-			return _elm_lang$core$Result$Err("could not convert string '" + s + "' to an Int" );
+			var c = s[i];
+			if (('0' <= c && c <= '9') || ('A' <= c && c <= 'F') || ('a' <= c && c <= 'f'))
+			{
+				continue;
+			}
+			return intErr(s);
 		}
-		start = 1;
+		return _elm_lang$core$Result$Ok(parseInt(s, 16));
 	}
-	for (var i = start; i < len; ++i)
+
+	// is decimal
+	if (c > '9' || (c < '0' && c !== '-' && c !== '+'))
+	{
+		return intErr(s);
+	}
+	for (var i = 1; i < len; ++i)
 	{
 		var c = s[i];
 		if (c < '0' || '9' < c)
 		{
-			return _elm_lang$core$Result$Err("could not convert string '" + s + "' to an Int" );
+			return intErr(s);
 		}
 	}
+
 	return _elm_lang$core$Result$Ok(parseInt(s, 10));
 }
 
+function intErr(s)
+{
+	return _elm_lang$core$Result$Err("could not convert string '" + s + "' to an Int");
+}
+
+
 function toFloat(s)
 {
-	var len = s.length;
-	if (len === 0)
+	// check if it is a hex, octal, or binary number
+	if (s.length === 0 || /[\sxbo]/.test(s))
 	{
-		return _elm_lang$core$Result$Err("could not convert string '" + s + "' to a Float" );
+		return floatErr(s);
 	}
-	var start = 0;
-	if (s[0] === '-')
-	{
-		if (len === 1)
-		{
-			return _elm_lang$core$Result$Err("could not convert string '" + s + "' to a Float" );
-		}
-		start = 1;
-	}
-	var dotCount = 0;
-	for (var i = start; i < len; ++i)
-	{
-		var c = s[i];
-		if ('0' <= c && c <= '9')
-		{
-			continue;
-		}
-		if (c === '.')
-		{
-			dotCount += 1;
-			if (dotCount <= 1)
-			{
-				continue;
-			}
-		}
-		return _elm_lang$core$Result$Err("could not convert string '" + s + "' to a Float" );
-	}
-	return _elm_lang$core$Result$Ok(parseFloat(s));
+	var n = +s;
+	// faster isNaN check
+	return n === n ? _elm_lang$core$Result$Ok(n) : floatErr(s);
 }
+
+function floatErr(s)
+{
+	return _elm_lang$core$Result$Err("could not convert string '" + s + "' to a Float");
+}
+
 
 function toList(str)
 {
@@ -4407,11 +4417,6 @@ function badToString(problem)
 				problem = problem.rest;
 				break;
 
-			case 'index':
-				context += '[' + problem.index + ']';
-				problem = problem.rest;
-				break;
-
 			case 'oneOf':
 				var problems = problem.problems;
 				for (var i = 0; i < problems.length; i++)
@@ -5112,9 +5117,9 @@ function on(name, options, decoder)
 
 function equalEvents(a, b)
 {
-	if (!a.options === b.options)
+	if (a.options !== b.options)
 	{
-		if (a.stopPropagation !== b.stopPropagation || a.preventDefault !== b.preventDefault)
+		if (a.options.stopPropagation !== b.options.stopPropagation || a.options.preventDefault !== b.options.preventDefault)
 		{
 			return false;
 		}
@@ -6390,7 +6395,7 @@ function normalRenderer(parentNode, view)
 var rAF =
 	typeof requestAnimationFrame !== 'undefined'
 		? requestAnimationFrame
-		: function(callback) { callback(); };
+		: function(callback) { setTimeout(callback, 1000 / 60); };
 
 function makeStepper(domNode, view, initialVirtualNode, eventNode)
 {
@@ -7275,15 +7280,8 @@ function setupIncomingPort(name, callback)
 		sentBeforeInit.push(value);
 	}
 
-	function postInitSend(incomingValue)
+	function postInitSend(value)
 	{
-		var result = A2(_elm_lang$core$Json_Decode$decodeValue, converter, incomingValue);
-		if (result.ctor === 'Err')
-		{
-			throw new Error('Trying to send an unexpected type of value through port `' + name + '`:\n' + result._0);
-		}
-
-		var value = result._0;
 		var temp = subs;
 		while (temp.ctor !== '[]')
 		{
@@ -7294,7 +7292,13 @@ function setupIncomingPort(name, callback)
 
 	function send(incomingValue)
 	{
-		currentSend(incomingValue);
+		var result = A2(_elm_lang$core$Json_Decode$decodeValue, converter, incomingValue);
+		if (result.ctor === 'Err')
+		{
+			throw new Error('Trying to send an unexpected type of value through port `' + name + '`:\n' + result._0);
+		}
+
+		currentSend(result._0);
 	}
 
 	return { send: send };
@@ -11316,10 +11320,18 @@ var _user$project$ContextMenu$Config = function (a) {
 var _user$project$ContextMenu$ContextMenu = function (a) {
 	return {ctor: 'ContextMenu', _0: a};
 };
+var _user$project$ContextMenu$setOnDeHover = F2(
+	function (deHover, _p6) {
+		var _p7 = _p6;
+		return _user$project$ContextMenu$ContextMenu(
+			_elm_lang$core$Native_Utils.update(
+				_p7._0,
+				{closeOnDeHover: deHover}));
+	});
 var _user$project$ContextMenu$init = {
 	ctor: '_Tuple2',
 	_0: _user$project$ContextMenu$ContextMenu(
-		{openState: _elm_lang$core$Maybe$Nothing}),
+		{openState: _elm_lang$core$Maybe$Nothing, closeOnDeHover: false}),
 	_1: _elm_lang$core$Platform_Cmd$none
 };
 var _user$project$ContextMenu$None = {ctor: 'None'};
@@ -11337,14 +11349,15 @@ var _user$project$ContextMenu$enterItem = F2(
 			openState);
 	});
 var _user$project$ContextMenu$Container = {ctor: 'Container'};
-var _user$project$ContextMenu$shouldCloseOnClick = function (openState) {
-	var _p6 = openState;
-	if (_p6.ctor === 'Just') {
-		return !_elm_lang$core$Native_Utils.eq(_p6._0._2, _user$project$ContextMenu$Container);
-	} else {
-		return true;
-	}
-};
+var _user$project$ContextMenu$shouldCloseOnClick = F2(
+	function (openState, deHover) {
+		var _p8 = openState;
+		if (_p8.ctor === 'Just') {
+			return deHover ? false : (!_elm_lang$core$Native_Utils.eq(_p8._0._2, _user$project$ContextMenu$Container));
+		} else {
+			return true;
+		}
+	});
 var _user$project$ContextMenu$leaveItem = function (openState) {
 	return A2(_user$project$ContextMenu$setHoverState, _user$project$ContextMenu$Container, openState);
 };
@@ -11358,13 +11371,14 @@ var _user$project$ContextMenu$EnterItem = function (a) {
 	return {ctor: 'EnterItem', _0: a};
 };
 var _user$project$ContextMenu$Close = {ctor: 'Close'};
-var _user$project$ContextMenu$subscriptions = function (_p7) {
-	var _p8 = _p7;
+var _user$project$ContextMenu$subscriptions = function (_p9) {
+	var _p10 = _p9;
+	var _p12 = _p10._0;
 	return _elm_lang$core$Platform_Sub$batch(
 		{
 			ctor: '::',
-			_0: _user$project$ContextMenu$shouldCloseOnClick(_p8._0.openState) ? _elm_lang$mouse$Mouse$downs(
-				function (_p9) {
+			_0: A2(_user$project$ContextMenu$shouldCloseOnClick, _p12.openState, _p12.closeOnDeHover) ? _elm_lang$mouse$Mouse$downs(
+				function (_p11) {
 					return _user$project$ContextMenu$Close;
 				}) : _elm_lang$core$Platform_Sub$none,
 			_1: {ctor: '[]'}
@@ -11375,91 +11389,107 @@ var _user$project$ContextMenu$Open = F3(
 		return {ctor: 'Open', _0: a, _1: b, _2: c};
 	});
 var _user$project$ContextMenu$update = F2(
-	function (msg, _p10) {
-		var _p11 = _p10;
-		var _p13 = _p11._0;
-		var _p12 = msg;
-		switch (_p12.ctor) {
-			case 'NoOp':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(_p13),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'RequestOpen':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(_p13),
-					_1: A2(
-						_elm_lang$core$Task$perform,
-						A2(_user$project$ContextMenu$Open, _p12._0, _p12._1),
-						_elm_lang$window$Window$size)
-				};
-			case 'Open':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{
-								openState: _elm_lang$core$Maybe$Just(
-									{ctor: '_Tuple4', _0: _p12._1, _1: _p12._2, _2: _user$project$ContextMenu$None, _3: _p12._0})
-							})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'Close':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{openState: _elm_lang$core$Maybe$Nothing})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'EnterItem':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{
-								openState: A2(_user$project$ContextMenu$enterItem, _p12._0, _p13.openState)
-							})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'LeaveItem':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{
-								openState: _user$project$ContextMenu$leaveItem(_p13.openState)
-							})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'EnterContainer':
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{
-								openState: _user$project$ContextMenu$enterContainer(_p13.openState)
-							})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			default:
-				return {
-					ctor: '_Tuple2',
-					_0: _user$project$ContextMenu$ContextMenu(
-						_elm_lang$core$Native_Utils.update(
-							_p13,
-							{
-								openState: _user$project$ContextMenu$leaveContainer(_p13.openState)
-							})),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
+	function (msg, _p13) {
+		update:
+		while (true) {
+			var _p14 = _p13;
+			var _p16 = _p14._0;
+			var _p15 = msg;
+			switch (_p15.ctor) {
+				case 'NoOp':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(_p16),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'RequestOpen':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(_p16),
+						_1: A2(
+							_elm_lang$core$Task$perform,
+							A2(_user$project$ContextMenu$Open, _p15._0, _p15._1),
+							_elm_lang$window$Window$size)
+					};
+				case 'Open':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{
+									openState: _elm_lang$core$Maybe$Just(
+										{ctor: '_Tuple4', _0: _p15._1, _1: _p15._2, _2: _user$project$ContextMenu$None, _3: _p15._0})
+								})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'Close':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{openState: _elm_lang$core$Maybe$Nothing})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'EnterItem':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{
+									openState: A2(_user$project$ContextMenu$enterItem, _p15._0, _p16.openState)
+								})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'LeaveItem':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{
+									openState: _user$project$ContextMenu$leaveItem(_p16.openState)
+								})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'EnterContainer':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{
+									openState: _user$project$ContextMenu$enterContainer(_p16.openState)
+								})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				default:
+					if (_p16.closeOnDeHover) {
+						var _v9 = _user$project$ContextMenu$Close,
+							_v10 = _user$project$ContextMenu$ContextMenu(
+							_elm_lang$core$Native_Utils.update(
+								_p16,
+								{
+									openState: _user$project$ContextMenu$leaveContainer(_p16.openState)
+								}));
+						msg = _v9;
+						_p13 = _v10;
+						continue update;
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: _user$project$ContextMenu$ContextMenu(
+								_elm_lang$core$Native_Utils.update(
+									_p16,
+									{
+										openState: _user$project$ContextMenu$leaveContainer(_p16.openState)
+									})),
+							_1: _elm_lang$core$Platform_Cmd$none
+						};
+					}
+			}
 		}
 	});
 var _user$project$ContextMenu$RequestOpen = F2(
@@ -11493,27 +11523,27 @@ var _user$project$ContextMenu$Item = function (a) {
 	return {ctor: 'Item', _0: a};
 };
 var _user$project$ContextMenu$disabled = F2(
-	function (disabled_, _p14) {
-		var _p15 = _p14;
+	function (disabled_, _p17) {
+		var _p18 = _p17;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p15._0,
+				_p18._0,
 				{disabled: disabled_}));
 	});
 var _user$project$ContextMenu$shortcut = F2(
-	function (shortcut, _p16) {
-		var _p17 = _p16;
+	function (shortcut, _p19) {
+		var _p20 = _p19;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p17._0,
+				_p20._0,
 				{shortcut: shortcut}));
 	});
 var _user$project$ContextMenu$icon = F3(
-	function (icon_, color, _p18) {
-		var _p19 = _p18;
+	function (icon_, color, _p21) {
+		var _p22 = _p21;
 		return _user$project$ContextMenu$Item(
 			_elm_lang$core$Native_Utils.update(
-				_p19._0,
+				_p22._0,
 				{
 					icon: _elm_lang$core$Maybe$Just(
 						{ctor: '_Tuple2', _0: icon_, _1: color})
@@ -11563,8 +11593,8 @@ var _user$project$ContextMenu$calculateX = F5(
 			_elm_lang$core$Basics$max,
 			0,
 			function () {
-				var _p20 = direction;
-				if (_p20.ctor === 'LeftBottom') {
+				var _p23 = direction;
+				if (_p23.ctor === 'LeftBottom') {
 					return (_elm_lang$core$Native_Utils.cmp(x - menuWidth, 0) < 0) ? (_elm_lang$core$Native_Utils.eq(overflow, _user$project$ContextMenu$Shift) ? 0 : x) : (x - menuWidth);
 				} else {
 					return (_elm_lang$core$Native_Utils.cmp(x + menuWidth, windowWidth) > 0) ? (_elm_lang$core$Native_Utils.eq(overflow, _user$project$ContextMenu$Shift) ? (windowWidth - menuWidth) : (x - menuWidth)) : x;
@@ -11592,32 +11622,32 @@ var _user$project$ContextMenu$defaultConfig = {
 	fontFamily: 'initial'
 };
 var _user$project$ContextMenu$itemView = F6(
-	function (config, transform, hoverIndex, groupIndex, index, _p21) {
-		var _p22 = _p21;
-		var _p25 = _p22._0._0;
+	function (config, transform, hoverIndex, groupIndex, index, _p24) {
+		var _p25 = _p24;
+		var _p28 = _p25._0._0;
 		var content = function () {
-			var _p23 = _p25.content;
-			if (_p23.ctor === 'Text') {
+			var _p26 = _p28.content;
+			if (_p26.ctor === 'Text') {
 				return A2(
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html_Attributes$style(
-							_user$project$Styles$text(_p25.height)),
+							_user$project$Styles$text(_p28.height)),
 						_1: {ctor: '[]'}
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(_p23._0),
+						_0: _elm_lang$html$Html$text(_p26._0),
 						_1: {ctor: '[]'}
 					});
 			} else {
-				return _p23._0(_p25.disabled);
+				return _p26._0(_p28.disabled);
 			}
 		}();
 		var icon = function () {
-			var _p24 = _p25.icon;
-			if (_p24.ctor === 'Just') {
+			var _p27 = _p28.icon;
+			if (_p27.ctor === 'Just') {
 				return A2(
 					_elm_lang$html$Html$map,
 					_elm_lang$core$Basics$never,
@@ -11632,8 +11662,8 @@ var _user$project$ContextMenu$itemView = F6(
 						{
 							ctor: '::',
 							_0: A2(
-								_p24._0._0,
-								_p25.disabled ? _user$project$ContextMenu$disabledTextColor : _p24._0._1,
+								_p27._0._0,
+								_p28.disabled ? _user$project$ContextMenu$disabledTextColor : _p27._0._1,
 								_user$project$ContextMenu$fontSize),
 							_1: {ctor: '[]'}
 						}));
@@ -11641,7 +11671,7 @@ var _user$project$ContextMenu$itemView = F6(
 				return _elm_lang$html$Html$text('');
 			}
 		}();
-		var events = _p25.disabled ? {ctor: '[]'} : {
+		var events = _p28.disabled ? {ctor: '[]'} : {
 			ctor: '::',
 			_0: _elm_lang$html$Html_Events$onMouseEnter(
 				transform(
@@ -11653,7 +11683,7 @@ var _user$project$ContextMenu$itemView = F6(
 					transform(_user$project$ContextMenu$LeaveItem)),
 				_1: {
 					ctor: '::',
-					_0: _elm_lang$html$Html_Events$onMouseDown(_p22._1),
+					_0: _elm_lang$html$Html_Events$onMouseDown(_p25._1),
 					_1: {ctor: '[]'}
 				}
 			}
@@ -11669,23 +11699,23 @@ var _user$project$ContextMenu$itemView = F6(
 				_user$project$ContextMenu$disabledTextColor,
 				config.invertText,
 				_elm_lang$core$Native_Utils.eq(config.cursor, _user$project$ContextMenu$Pointer),
-				_p25.height,
+				_p28.height,
 				hovered,
-				_p25.disabled,
+				_p28.disabled,
 				!_elm_lang$core$Native_Utils.eq(
-					_elm_lang$core$String$trim(_p25.shortcut),
+					_elm_lang$core$String$trim(_p28.shortcut),
 					'')));
 		var shortCut = A2(
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html_Attributes$style(
-					A3(_user$project$Styles$shortcut, _user$project$ContextMenu$shortcutTextColor, _p25.height, hovered)),
+					A3(_user$project$Styles$shortcut, _user$project$ContextMenu$shortcutTextColor, _p28.height, hovered)),
 				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
-				_0: _elm_lang$html$Html$text(_p25.shortcut),
+				_0: _elm_lang$html$Html$text(_p28.shortcut),
 				_1: {ctor: '[]'}
 			});
 		return A2(
@@ -11713,13 +11743,13 @@ var _user$project$ContextMenu$itemGroupView = F5(
 			items);
 	});
 var _user$project$ContextMenu$view = F4(
-	function (config, transform, toItemGroups, _p26) {
-		var _p27 = _p26;
-		var _p28 = _p27._0.openState;
-		if (_p28.ctor === 'Just') {
-			var _p31 = _p28._0._1;
-			var _p30 = _p28._0._0;
-			var groups = toItemGroups(_p28._0._3);
+	function (config, transform, toItemGroups, _p29) {
+		var _p30 = _p29;
+		var _p31 = _p30._0.openState;
+		if (_p31.ctor === 'Just') {
+			var _p34 = _p31._0._1;
+			var _p33 = _p31._0._0;
+			var groups = toItemGroups(_p31._0._3);
 			var itemGroups = A2(
 				_elm_lang$core$List$map,
 				_elm_lang$core$List$map(_elm_lang$core$Tuple$first),
@@ -11730,23 +11760,23 @@ var _user$project$ContextMenu$view = F4(
 					_user$project$ContextMenu$itemGroupView,
 					config,
 					transform,
-					_user$project$ContextMenu$getItemIndex(_p28._0._2)),
+					_user$project$ContextMenu$getItemIndex(_p31._0._2)),
 				groups);
-			var _p29 = _user$project$ContextMenu$joinGroupsWithPartition(groupsView);
-			if (_p29.ctor === 'Just') {
+			var _p32 = _user$project$ContextMenu$joinGroupsWithPartition(groupsView);
+			if (_p32.ctor === 'Just') {
 				var y_ = A4(
 					_user$project$ContextMenu$calculateY,
 					config.overflowY,
-					_p31.height,
+					_p34.height,
 					_user$project$ContextMenu$calculateMenuHeight(itemGroups),
-					_p30.y);
+					_p33.y);
 				var x_ = A5(
 					_user$project$ContextMenu$calculateX,
 					config.direction,
 					config.overflowX,
-					_p31.width,
+					_p34.width,
 					_user$project$ContextMenu$menuWidthWithBorders(config.width),
-					_p30.x);
+					_p33.x);
 				return A2(
 					_elm_lang$html$Html$div,
 					{
@@ -11765,7 +11795,7 @@ var _user$project$ContextMenu$view = F4(
 							}
 						}
 					},
-					_p29._0);
+					_p32._0);
 			} else {
 				return _elm_lang$html$Html$text('');
 			}
@@ -11986,12 +12016,17 @@ var _user$project$Main$ContextMenuMsg = function (a) {
 	return {ctor: 'ContextMenuMsg', _0: a};
 };
 var _user$project$Main$init = function () {
+	var config = _user$project$Configs$winDesktop;
 	var _p1 = _user$project$ContextMenu$init;
 	var contextMenu = _p1._0;
 	var msg = _p1._1;
 	return A2(
 		_elm_lang$core$Platform_Cmd_ops['!'],
-		{contextMenu: contextMenu, config: _user$project$Configs$winChrome, message: ''},
+		{
+			contextMenu: A2(_user$project$ContextMenu$setOnDeHover, true, contextMenu),
+			config: config,
+			message: ''
+		},
 		{
 			ctor: '::',
 			_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ContextMenuMsg, msg),
