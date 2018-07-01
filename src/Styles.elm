@@ -1,10 +1,12 @@
 module Styles exposing (..)
 
 import Color exposing (Color)
+import Html exposing (Attribute)
+import Html.Attributes exposing (style)
 
 
-type alias Style =
-    List ( String, String )
+type alias Style msg =
+    List (Attribute msg)
 
 
 borderColor : String
@@ -12,111 +14,118 @@ borderColor =
     "#ccc"
 
 
-container : Color -> Int -> Int -> Bool -> Int -> Int -> Int -> String -> Int -> Style
+container : Color -> Float -> Float -> Bool -> Float -> Float -> Float -> String -> Float -> Style msg
 container containerColor borderWidth padding rounded width left top fontFamily fontSize =
-    [ ( "border-style", "solid" )
-    , ( "border-width", px borderWidth )
-    , ( "border-color", borderColor )
-    , ( "position", "fixed" )
-    , ( "top", px top )
-    , ( "left", px left )
-    , ( "width", px width )
-    , ( "z-index", toString (2147483647 - 10) )
-    , ( "background-color", fromColor containerColor )
-    , ( "cursor", "default" )
-    , ( "box-shadow", "0px 3px 8px 0px rgba(0,0,0,0.3)" )
-    , ( "padding", px padding ++ " 0" )
-    , ( "border-radius"
-      , if rounded then
+    [ style "border-style" "solid"
+    , style "border-width" (px borderWidth)
+    , style "border-color" borderColor
+    , style "position" "fixed"
+    , style "top" (px top)
+    , style "left" (px left)
+    , style "width" (px width)
+    , style "z-index" (String.fromFloat (2147483647 - 10))
+    , style "background-color" (fromColor containerColor)
+    , style "cursor" "default"
+    , style "box-shadow" "0px 3px 8px 0px rgba(0,0,0,0.3)"
+    , style "padding" (px padding ++ " 0")
+    , style "border-radius"
+        (if rounded then
             px padding
-        else
+
+         else
             ""
-      )
-    , ( "font-family", fontFamily )
-    , ( "font-size", px fontSize )
+        )
+    , style "font-family" fontFamily
+    , style "font-size" (px fontSize)
     ]
 
 
-row : Color -> Color -> Bool -> Bool -> Int -> Bool -> Bool -> Bool -> Style
+row : Color -> Color -> Bool -> Bool -> Float -> Bool -> Bool -> Bool -> Style msg
 row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabled hasShortCut =
-    [ ( "position", "relative" )
-    , ( "padding", "0 18px 0 28px" )
-    , ( "background-color"
-      , if hovered then
+    [ style "position" "relative"
+    , style "padding" "0 18px 0 28px"
+    , style "background-color"
+        (if hovered then
             fromColor hoverColor
-        else
+
+         else
             ""
-      )
-    , ( "height", px lineHeight )
-    , ( "color"
-      , if disabled then
+        )
+    , style "height" (px lineHeight)
+    , style "color"
+        (if disabled then
             fromColor disabledTextColor
-        else if hovered && invertText then
+
+         else if hovered && invertText then
             "#fff"
-        else
+
+         else
             ""
-      )
-    , ( "cursor"
-      , if (not disabled) && usePointer then
+        )
+    , style "cursor"
+        (if not disabled && usePointer then
             "pointer"
-        else
+
+         else
             ""
-      )
-    , ( "display", "flex" )
-    , ( "justify-content"
-      , if hasShortCut then
+        )
+    , style "display" "flex"
+    , style "justify-content"
+        (if hasShortCut then
             "space-between"
-        else
+
+         else
             ""
-      )
+        )
     ]
 
 
-text : Int -> Style
+text : Float -> Style msg
 text lineHeight =
-    [ ( "line-height", px lineHeight )
-    , ( "text-overflow", "ellipsis" )
-    , ( "overflow", "hidden" )
-    , ( "white-space", "nowrap" )
+    [ style "line-height" (px lineHeight)
+    , style "text-overflow" "ellipsis"
+    , style "overflow" "hidden"
+    , style "white-space" "nowrap"
     ]
 
 
-annotation : Color -> Int -> Int -> Bool -> Style
+annotation : Color -> Float -> Float -> Bool -> Style msg
 annotation color annotationHeight fontSize disabled =
-    [ ( "margin-top", "-2px" )
-    , ( "line-height", px annotationHeight )
-    , ( "font-size", px fontSize )
-    , ( "color", fromColor color )
+    [ style "margin-top" "-2px"
+    , style "line-height" (px annotationHeight)
+    , style "font-size" (px fontSize)
+    , style "color" (fromColor color)
     ]
 
 
-shortcut : Color -> Int -> Bool -> Style
+shortcut : Color -> Float -> Bool -> Style msg
 shortcut color lineHeight hovered =
-    [ ( "line-height", px lineHeight )
-    , ( "color"
-      , if hovered then
+    [ style "line-height" (px lineHeight)
+    , style "color"
+        (if hovered then
             ""
-        else
+
+         else
             fromColor color
-      )
+        )
     ]
 
 
-partition : Int -> Int -> Style
+partition : Float -> Float -> Style msg
 partition borderWidth margin =
-    [ ( "border-bottom-style", "solid" )
-    , ( "border-bottom-width", px 1 )
-    , ( "border-bottom-color", borderColor )
-    , ( "border-top", "none" )
-    , ( "margin", px margin ++ " 0" )
+    [ style "border-bottom-style" "solid"
+    , style "border-bottom-width" (px 1)
+    , style "border-bottom-color" borderColor
+    , style "border-top" "none"
+    , style "margin" (px margin ++ " 0")
     ]
 
 
-icon : Int -> Style
+icon : Float -> Style msg
 icon size =
-    [ ( "position", "absolute" )
-    , ( "margin-left", px (-size - 4) )
-    , ( "top", "2px" )
+    [ style "position" "absolute"
+    , style "margin-left" (px (-size - 4))
+    , style "top" "2px"
     ]
 
 
@@ -124,9 +133,9 @@ icon size =
 ----
 
 
-px : number -> String
+px : Float -> String
 px n =
-    toString n ++ "px"
+    String.fromFloat n ++ "px"
 
 
 fromColor : Color -> String
@@ -135,12 +144,12 @@ fromColor color =
         { red, green, blue, alpha } =
             Color.toRgb color
     in
-        "rgba("
-            ++ toString red
-            ++ ","
-            ++ toString green
-            ++ ","
-            ++ toString blue
-            ++ ","
-            ++ toString alpha
-            ++ ")"
+    "rgba("
+        ++ String.fromInt red
+        ++ ","
+        ++ String.fromInt green
+        ++ ","
+        ++ String.fromInt blue
+        ++ ","
+        ++ String.fromFloat alpha
+        ++ ")"

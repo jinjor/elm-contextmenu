@@ -1,30 +1,31 @@
 module ContextMenu
     exposing
-        ( ContextMenu
-        , Msg
-        , init
-        , update
-        , subscriptions
+        ( Config
+        , ContextMenu
+        , Cursor(..)
+        , Direction(..)
         , Item
-        , item
-        , itemWithAnnotation
+        , Msg
+        , Overflow(..)
+        , defaultConfig
         , disabled
         , icon
-        , shortcut
-        , Direction(..)
-        , Overflow(..)
-        , Cursor(..)
-        , Config
-        , defaultConfig
-        , view
+        , init
+        , item
+        , itemWithAnnotation
         , open
         , openIf
         , setOnDehover
+        , shortcut
+        , subscriptions
+        , update
+        , view
         )
 
 {-| The ContextMenu component that follows the Elm Architecture.
 
 See [How to use](http://package.elm-lang.org/packages/jinjor/elm-contextmenu/latest).
+
 
 # TEA Parts
 
@@ -32,29 +33,56 @@ The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org
 
 @docs ContextMenu, Msg, init, update, subscriptions
 
+
 # Item
+
 @docs Item, item, itemWithAnnotation, disabled, icon, shortcut
 
+
 # Config
+
 @docs Config, Direction, Overflow, Cursor, defaultConfig
 
+
 # View
+
 @docs view, open, openIf
 
+
 # Advanced
+
 @docs setOnDehover
+
 -}
 
-import Task
-import Process
+import Browser
+import Browser.Dom
+import Browser.Events
 import Color exposing (Color)
-import Json.Decode as Decode
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Mouse exposing (Position)
-import Window exposing (Size)
+import Json.Decode as Decode
+import Process
 import Styles as S
+import Task exposing (Task)
+
+
+
+-- TYPES
+
+
+type alias Size =
+    { width : Float
+    , height : Float
+    }
+
+
+type alias Position =
+    { x : Float
+    , y : Float
+    }
+
 
 
 -- MODEL
@@ -83,15 +111,21 @@ getItemIndex hover =
 
 
 type alias OpenState context =
-    Maybe ( Position, Size, HoverState, context )
+    Maybe
+        { mouse : Position
+        , window : Size
+        , hover : HoverState
+        , context : context
+        }
 
 
 shouldCloseOnClick : Bool -> OpenState context -> Bool
 shouldCloseOnClick closeOnDehover openState =
     case openState of
-        Just ( _, _, hover, _ ) ->
+        Just { hover } ->
             if closeOnDehover then
                 False
+
             else
                 hover /= Container
 
@@ -103,18 +137,24 @@ setHoverState : HoverState -> OpenState context -> OpenState context
 setHoverState hover openState =
     openState
         |> Maybe.map
-            (\( mouse, window, _, context ) -> ( mouse, window, hover, context ))
+            (\{ mouse, window, context } ->
+                { mouse = mouse
+                , window = window
+                , hover = hover
+                , context = context
+                }
+            )
 
 
 {-| This switches when the menu should be closed.
 
-   - True: Closes when mouse leaves the menu (keeps opening on cliking)
-   - False(default): Closes when somewhere in the window is clicked
+  - True: Closes when mouse leaves the menu (keeps opening on cliking)
+  - False(default): Closes when somewhere in the window is clicked
 
 -}
 setOnDehover : Bool -> ContextMenu context -> ContextMenu context
 setOnDehover closeOnDehover (ContextMenu model) =
-    (ContextMenu { model | closeOnDehover = closeOnDehover })
+    ContextMenu { model | closeOnDehover = closeOnDehover }
 
 
 enterItem : ( Int, Int ) -> OpenState context -> OpenState context
@@ -171,11 +211,20 @@ update msg (ContextMenu model) =
 
         RequestOpen context mouse ->
             ( ContextMenu model
-            , Task.perform (Open context mouse) Window.size
+            , Task.perform (Open context mouse) windowSize
             )
 
         Open context mouse window ->
-            ( ContextMenu { model | openState = Just ( mouse, window, None, context ) }
+            ( ContextMenu
+                { model
+                    | openState =
+                        Just
+                            { mouse = mouse
+                            , window = window
+                            , hover = None
+                            , context = context
+                            }
+                }
             , Cmd.none
             )
 
@@ -200,8 +249,18 @@ update msg (ContextMenu model) =
         LeaveContainer ->
             if model.closeOnDehover then
                 update Close (ContextMenu { model | openState = leaveContainer model.openState })
+
             else
                 ( ContextMenu { model | openState = leaveContainer model.openState }, Cmd.none )
+
+
+windowSize : Task x Size
+windowSize =
+    Browser.Dom.getViewport
+        |> Task.map
+            (\v ->
+                Size v.viewport.width v.viewport.height
+            )
 
 
 {-| The Subscription.
@@ -210,7 +269,8 @@ subscriptions : ContextMenu context -> Sub (Msg context)
 subscriptions (ContextMenu model) =
     Sub.batch
         [ if shouldCloseOnClick model.closeOnDehover model.openState then
-            Mouse.downs (\_ -> Close)
+            Browser.Events.onMouseDown (Decode.succeed Close)
+
           else
             Sub.none
         ]
@@ -235,52 +295,52 @@ shortcutTextColor =
     Color.rgb 200 200 200
 
 
-containerBorderWidth : Int
+containerBorderWidth : Float
 containerBorderWidth =
     1
 
 
-containerPadding : Int
+containerPadding : Float
 containerPadding =
     4
 
 
-partitionWidth : Int
+partitionWidth : Float
 partitionWidth =
     1
 
 
-partitionMargin : Int
+partitionMargin : Float
 partitionMargin =
     6
 
 
-defaultItemHeight : Int
+defaultItemHeight : Float
 defaultItemHeight =
     20
 
 
-fontSize : Int
+fontSize : Float
 fontSize =
     13
 
 
-annotationHeight : Int
+annotationHeight : Float
 annotationHeight =
     12
 
 
-annotationFontSize : Int
+annotationFontSize : Float
 annotationFontSize =
     10
 
 
-menuWidthWithBorders : Int -> Int
+menuWidthWithBorders : Float -> Float
 menuWidthWithBorders menuWidth =
     menuWidth + containerBorderWidth * 2
 
 
-calculateMenuHeight : List (List Item) -> Int
+calculateMenuHeight : List (List Item) -> Float
 calculateMenuHeight groups =
     let
         containerBorders =
@@ -290,15 +350,21 @@ calculateMenuHeight groups =
             containerPadding * 2
 
         partitions =
-            (List.length groups - 1) * (partitionMargin * 2 + partitionWidth)
+            toFloat (List.length groups - 1) * (partitionMargin * 2 + partitionWidth)
 
         items =
-            List.sum (List.map (\items -> List.sum (List.map (\(Item item) -> item.height) items)) groups)
+            List.sum
+                (List.map
+                    (\items_ ->
+                        List.sum (List.map (\(Item item_) -> item_.height) items_)
+                    )
+                    groups
+                )
     in
-        containerBorders + containerPaddings + partitions + items
+    containerBorders + containerPaddings + partitions + toFloat items
 
 
-calculateX : Direction -> Overflow -> Int -> Int -> Int -> Int
+calculateX : Direction -> Overflow -> Float -> Float -> Float -> Float
 calculateX direction overflow windowWidth menuWidth x =
     Basics.max 0 <|
         case direction of
@@ -306,8 +372,10 @@ calculateX direction overflow windowWidth menuWidth x =
                 if x - menuWidth < 0 then
                     if overflow == Shift then
                         0
+
                     else
                         x
+
                 else
                     x - menuWidth
 
@@ -315,20 +383,24 @@ calculateX direction overflow windowWidth menuWidth x =
                 if x + menuWidth > windowWidth then
                     if overflow == Shift then
                         windowWidth - menuWidth
+
                     else
                         x - menuWidth
+
                 else
                     x
 
 
-calculateY : Overflow -> Int -> Int -> Int -> Int
+calculateY : Overflow -> Float -> Float -> Float -> Float
 calculateY overflow windowHeight menuHeight y =
     Basics.max 0 <|
         if y + menuHeight > windowHeight then
             if overflow == Shift then
                 windowHeight - menuHeight
+
             else
                 y - menuHeight
+
         else
             y
 
@@ -339,11 +411,10 @@ calculateY overflow windowHeight menuHeight y =
 
 {-| The menu item. You can construct it with pipe-friendly functions.
 
-```
-ContextMenu.item "Take photos"
-  |> ContextMenu.icon FontAwesome.camera Color.green
-  |> ContextMenu.disabled True
-```
+    ContextMenu.item "Take photos"
+      |> ContextMenu.icon FontAwesome.camera Color.green
+      |> ContextMenu.disabled True
+
 -}
 type Item
     = Item
@@ -365,7 +436,7 @@ type Content
 item : String -> Item
 item s =
     Item
-        { height = defaultItemHeight
+        { height = floor defaultItemHeight
         , icon = Nothing
         , content = Text s
         , shortcut = ""
@@ -376,7 +447,7 @@ item s =
 custom : Int -> (Bool -> Html Never) -> Item
 custom height content =
     Item
-        { height = Basics.max defaultItemHeight height
+        { height = Basics.max (floor defaultItemHeight) height
         , icon = Nothing
         , content = Custom content
         , shortcut = ""
@@ -388,33 +459,34 @@ custom height content =
 -}
 itemWithAnnotation : String -> String -> Item
 itemWithAnnotation s ann =
-    custom (defaultItemHeight + annotationHeight - 2) (annotationView s ann)
+    custom (floor <| defaultItemHeight + annotationHeight - 2) (annotationView s ann)
 
 
 {-| Disables the item. True = disabled, False = enabled.
 -}
 disabled : Bool -> Item -> Item
-disabled disabled_ (Item item) =
-    Item { item | disabled = disabled_ }
+disabled disabled_ (Item item_) =
+    Item { item_ | disabled = disabled_ }
 
 
 {-| Displays the shortcut key at the right.
 -}
 shortcut : String -> Item -> Item
-shortcut shortcut (Item item) =
-    Item { item | shortcut = shortcut }
+shortcut shortcutName (Item item_) =
+    Item { item_ | shortcut = shortcutName }
 
 
 {-| Shows the icon.
 
 The first function creates the icon.
 This fuction is compatible with
- [elm-material-icons](http://package.elm-lang.org/packages/elm-community/elm-material-icons/latest) and
- [elm-font-awesome](http://package.elm-lang.org/packages/jystic/elm-font-awesome/latest).
+[elm-material-icons](http://package.elm-lang.org/packages/elm-community/elm-material-icons/latest) and
+[elm-font-awesome](http://package.elm-lang.org/packages/jystic/elm-font-awesome/latest).
+
 -}
 icon : (Color -> Int -> Html Never) -> Color -> Item -> Item
-icon icon_ color (Item item) =
-    Item { item | icon = Just ( icon_, color ) }
+icon icon_ color (Item item_) =
+    Item { item_ | icon = Just ( icon_, color ) }
 
 
 
@@ -422,7 +494,6 @@ icon icon_ color (Item item) =
 
 
 {-| Defines the styles of the menu. See [examples](https://github.com/jinjor/elm-contextmenu/blob/master/examples/Configs.elm).
-
 -}
 type alias Config =
     { width : Int
@@ -461,20 +532,18 @@ type Cursor
 
 {-| The default config.
 
-```
-defaultConfig =
-  { width = 300
-  , direction = RightBottom
-  , overflowX = Mirror
-  , overflowY = Mirror
-  , containerColor = Color.white
-  , hoverColor = Color.rgb 240 240 240
-  , invertText = False
-  , cursor = Pointer
-  , rounded = False
-  , fontFamily = "initial"
-  }
-```
+    defaultConfig =
+        { width = 300
+        , direction = RightBottom
+        , overflowX = Mirror
+        , overflowY = Mirror
+        , containerColor = Color.white
+        , hoverColor = Color.rgb 240 240 240
+        , invertText = False
+        , cursor = Pointer
+        , rounded = False
+        , fontFamily = "initial"
+        }
 
 -}
 defaultConfig : Config
@@ -501,8 +570,8 @@ This attribute is passed for each element that needs a menu.
 
 Arguments:
 
-1. function to transform component's message into user's message
-2. the context which is used to create items
+1.  function to transform component's message into user's message
+2.  the context which is used to create items
 
 -}
 open : (Msg context -> msg) -> context -> Attribute msg
@@ -513,17 +582,25 @@ open transform context =
 {-| Similar to `open` but only works under particular condition.
 
 This is useful for debugging on browser.
+
 -}
 openIf : Bool -> (Msg context -> msg) -> context -> Attribute msg
 openIf condition transform context =
     if condition then
-        onWithOptions
+        Html.Events.custom
             "contextmenu"
-            { preventDefault = True, stopPropagation = True }
             (position
                 |> Decode.map (RequestOpen context)
                 |> Decode.map transform
+                |> Decode.map
+                    (\msg ->
+                        { message = msg
+                        , stopPropagation = True
+                        , preventDefault = True
+                        }
+                    )
             )
+
     else
         on "contextmenu" (Decode.succeed (transform NoOp))
 
@@ -531,24 +608,24 @@ openIf condition transform context =
 position : Decode.Decoder Position
 position =
     Decode.map2 Position
-        (Decode.field "clientX" Decode.int)
-        (Decode.field "clientY" Decode.int)
+        (Decode.field "clientX" Decode.float)
+        (Decode.field "clientY" Decode.float)
 
 
 {-| Shows the menu. This should be called at only one place.
 
 Arguments:
 
-1. the Config
-2. function to transform component's message into user's message
-3. function to create item groups
-4. the Model
+1.  the Config
+2.  function to transform component's message into user's message
+3.  function to create item groups
+4.  the Model
 
 -}
 view : Config -> (Msg context -> msg) -> (context -> List (List ( Item, msg ))) -> ContextMenu context -> Html msg
 view config transform toItemGroups (ContextMenu model) =
     case model.openState of
-        Just ( mouse, window, hover, context ) ->
+        Just { mouse, window, hover, context } ->
             let
                 groups =
                     toItemGroups context
@@ -561,44 +638,43 @@ view config transform toItemGroups (ContextMenu model) =
                         (itemGroupView config transform (getItemIndex hover))
                         groups
             in
-                case joinGroupsWithPartition groupsView of
-                    Just items ->
-                        let
-                            x_ =
-                                calculateX
-                                    config.direction
-                                    config.overflowX
-                                    window.width
-                                    (menuWidthWithBorders config.width)
-                                    mouse.x
+            case joinGroupsWithPartition groupsView of
+                Just items ->
+                    let
+                        x_ =
+                            calculateX
+                                config.direction
+                                config.overflowX
+                                window.width
+                                (menuWidthWithBorders (toFloat config.width))
+                                mouse.x
 
-                            y_ =
-                                calculateY
-                                    config.overflowY
-                                    window.height
-                                    (calculateMenuHeight itemGroups)
-                                    mouse.y
-                        in
-                            div
-                                [ style
-                                    (S.container
-                                        config.containerColor
-                                        containerBorderWidth
-                                        containerPadding
-                                        config.rounded
-                                        config.width
-                                        x_
-                                        y_
-                                        config.fontFamily
-                                        fontSize
-                                    )
-                                , onMouseEnter (transform EnterContainer)
-                                , onMouseLeave (transform LeaveContainer)
-                                ]
-                                items
+                        y_ =
+                            calculateY
+                                config.overflowY
+                                window.height
+                                (calculateMenuHeight itemGroups)
+                                mouse.y
+                    in
+                    div
+                        (S.container
+                            config.containerColor
+                            containerBorderWidth
+                            containerPadding
+                            config.rounded
+                            (toFloat config.width)
+                            x_
+                            y_
+                            config.fontFamily
+                            fontSize
+                            ++ [ onMouseEnter (transform EnterContainer)
+                               , onMouseLeave (transform LeaveContainer)
+                               ]
+                        )
+                        items
 
-                    Nothing ->
-                        Html.text ""
+                Nothing ->
+                    Html.text ""
 
         Nothing ->
             Html.text ""
@@ -621,7 +697,7 @@ joinGroupsWithPartition groups =
 
 partition : Html msg
 partition =
-    hr [ style (S.partition partitionWidth partitionMargin) ] []
+    hr (S.partition partitionWidth partitionMargin) []
 
 
 itemGroupView : Config -> (Msg context -> msg) -> Maybe ( Int, Int ) -> Int -> List ( Item, msg ) -> List (Html msg)
@@ -630,73 +706,84 @@ itemGroupView config transform hoverIndex groupIndex items =
 
 
 itemView : Config -> (Msg context -> msg) -> Maybe ( Int, Int ) -> Int -> Int -> ( Item, msg ) -> Html msg
-itemView config transform hoverIndex groupIndex index ( Item item, msg ) =
+itemView config transform hoverIndex groupIndex index ( Item item_, msg ) =
     let
         hovered =
             hoverIndex == Just ( groupIndex, index )
 
         styles =
-            style <|
-                S.row
-                    config.hoverColor
-                    disabledTextColor
-                    config.invertText
-                    (config.cursor == Pointer)
-                    item.height
-                    hovered
-                    item.disabled
-                    (String.trim item.shortcut /= "")
+            S.row
+                config.hoverColor
+                disabledTextColor
+                config.invertText
+                (config.cursor == Pointer)
+                (toFloat item_.height)
+                hovered
+                item_.disabled
+                (String.trim item_.shortcut /= "")
 
         events =
-            if item.disabled then
+            if item_.disabled then
                 []
+
             else
                 [ onMouseEnter (transform <| EnterItem ( groupIndex, index ))
                 , onMouseLeave (transform <| LeaveItem)
                 , onMouseDown msg
                 ]
 
-        icon =
-            case item.icon of
-                Just ( icon, color ) ->
+        icon_ =
+            case item_.icon of
+                Just ( icon__, color ) ->
                     Html.map never <|
                         div
-                            [ style (S.icon fontSize) ]
-                            [ icon
-                                (if item.disabled then
+                            (S.icon fontSize)
+                            [ icon__
+                                (if item_.disabled then
                                     disabledTextColor
+
                                  else
                                     color
                                 )
-                                fontSize
+                                (floor fontSize)
                             ]
 
                 Nothing ->
                     Html.text ""
 
         content =
-            case item.content of
+            case item_.content of
                 Text s ->
-                    div [ style (S.text item.height) ] [ text s ]
+                    div (S.text (toFloat item_.height)) [ text s ]
 
                 Custom toHtml ->
-                    toHtml item.disabled
+                    toHtml item_.disabled
 
         shortCut =
-            div [ style (S.shortcut shortcutTextColor item.height hovered) ] [ text item.shortcut ]
+            div
+                (S.shortcut shortcutTextColor (toFloat item_.height) hovered)
+                [ text item_.shortcut ]
     in
-        div
-            (styles :: events)
-            [ icon, Html.map never content, shortCut ]
+    div
+        (styles ++ events)
+        [ icon_
+        , Html.map never content
+        , shortCut
+        ]
 
 
 annotationView : String -> String -> Bool -> Html Never
-annotationView s ann disabled =
+annotationView s ann disabled_ =
     div []
         [ div
-            [ style (S.text defaultItemHeight) ]
+            (S.text defaultItemHeight)
             [ text s ]
         , div
-            [ style (S.annotation annotationTextColor annotationHeight annotationFontSize disabled) ]
+            (S.annotation
+                annotationTextColor
+                annotationHeight
+                annotationFontSize
+                disabled_
+            )
             [ text ann ]
         ]
