@@ -407,7 +407,7 @@ calculateY overflow windowHeight menuHeight y =
 type Item
     = Item
         { height : Int
-        , icon : Maybe ( Color -> Int -> Html Never, Color )
+        , icon : Maybe ( String -> Int -> Html Never, String )
         , content : Content
         , shortcut : String
         , disabled : Bool
@@ -466,11 +466,11 @@ shortcut shortcutName (Item item_) =
 
 {-| Shows the icon.
 
-The first function creates the icon.
-The Color is just a String like `#fff`, `rgb(100,200,200)`, etc.
+The first argument is a function that creates an icon,
+given a color string(like `#fff`, `rgb(100,200,200)`, etc.) and icon size (px).
 
 -}
-icon : (Color -> Int -> Html Never) -> Color -> Item -> Item
+icon : (String -> Int -> Html Never) -> String -> Item -> Item
 icon icon_ color (Item item_) =
     Item { item_ | icon = Just ( icon_, color ) }
 
