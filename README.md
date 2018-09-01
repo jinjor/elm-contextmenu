@@ -1,7 +1,13 @@
 elm-contextmenu
-----
+===
 
 Flexible context menu for Elm ([Demo](https://jinjor.github.io/elm-contextmenu/))
+
+## Warning
+
+On the migration from Elm 0.18 to 0.19, the legacy `Color` type has changed to just a type alias of `String` like `#aaa`, `rgb(100,100,200)`. Also, some icon libraries that uses `Color` type (i.e. `FontAwesome`, `MaterialIcons`) cannot be used anymore. So now you need to make a function typed as `String -> Int -> Html msg`. It *should* work but I haven't tested yet.
+
+I also think the implementation can be improved using new Browser API, but I cannot spend my time to try it. The styling method can be improved too. I would really appreciate if someone do that. Don't hesitate to fork this package or make your own from scratch! ([This article](http://jinjor-labo.hatenablog.com/entry/2016/11/05/201107) may help.)
 
 
 ## How to use

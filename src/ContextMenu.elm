@@ -399,7 +399,8 @@ calculateY overflow windowHeight menuHeight y =
 {-| The menu item. You can construct it with pipe-friendly functions.
 
     ContextMenu.item "Take photos"
-        |> ContextMenu.icon FontAwesome.camera Color.green
+        -- This library is outdated. See README.
+        -- |> ContextMenu.icon FontAwesome.camera Color.green
         |> ContextMenu.disabled True
 
 -}
