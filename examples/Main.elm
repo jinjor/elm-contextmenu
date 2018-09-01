@@ -1,17 +1,15 @@
-port module Main exposing (..)
+port module Main exposing (Context(..), Model, Msg(..), backgroundStyles, init, main, objectStyles, subscriptions, toItemGroups, update, view)
 
-import Color
+import Browser
+import Configs
+import ContextMenu exposing (ContextMenu)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import ContextMenu exposing (ContextMenu)
-import Configs
-import FontAwesome
-import Material.Icons.Image as Material
 
 
-main : Program Never Model Msg
+main : Program () Model Msg
 main =
-    program
+    Browser.element
         { init = init
         , update = update
         , view = view
@@ -36,31 +34,36 @@ type Msg
     | Item Int
 
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Cmd Msg )
+init _ =
     let
         ( contextMenu, msg ) =
             ContextMenu.init
     in
-        { contextMenu = contextMenu
-        , config = Configs.winChrome
-        , message = ""
-        }
-            ! [ Cmd.map ContextMenuMsg msg ]
+    ( { contextMenu = contextMenu
+      , config = Configs.winChrome
+      , message = ""
+      }
+    , Cmd.map ContextMenuMsg msg
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ContextMenuMsg msg ->
+        ContextMenuMsg msg_ ->
             let
                 ( contextMenu, cmd ) =
-                    ContextMenu.update msg model.contextMenu
+                    ContextMenu.update msg_ model.contextMenu
             in
-                { model | contextMenu = contextMenu } ! [ Cmd.map ContextMenuMsg cmd ]
+            ( { model | contextMenu = contextMenu }
+            , Cmd.map ContextMenuMsg cmd
+            )
 
         Item num ->
-            { model | message = "Item[" ++ toString num ++ "] was clicked." } ! []
+            ( { model | message = "Item[" ++ String.fromInt num ++ "] was clicked." }
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub Msg
@@ -73,13 +76,9 @@ view model =
     div
         []
         [ div
-            [ ContextMenu.open ContextMenuMsg Background
-            , style backgroundStyles
-            ]
+            (ContextMenu.open ContextMenuMsg Background :: backgroundStyles)
             [ div
-                [ ContextMenu.open ContextMenuMsg Object
-                , style objectStyles
-                ]
+                (ContextMenu.open ContextMenuMsg Object :: objectStyles)
                 []
             ]
         , div [] [ text model.message ]
@@ -91,25 +90,25 @@ view model =
         ]
 
 
-backgroundStyles : List ( String, String )
+backgroundStyles : List (Attribute msg)
 backgroundStyles =
-    [ ( "left", "10%" )
-    , ( "right", "10%" )
-    , ( "top", "10%" )
-    , ( "bottom", "-10%" )
-    , ( "position", "absolute" )
-    , ( "background-color", "#cdb" )
+    [ style "left" "10%"
+    , style "right" "10%"
+    , style "top" "10%"
+    , style "bottom" "-10%"
+    , style "position" "absolute"
+    , style "background-color" "#cdb"
     ]
 
 
-objectStyles : List ( String, String )
+objectStyles : List (Attribute msg)
 objectStyles =
-    [ ( "position", "absolute" )
-    , ( "top", "100px" )
-    , ( "left", "150px" )
-    , ( "width", "100px" )
-    , ( "height", "100px" )
-    , ( "background-color", "#976" )
+    [ style "position" "absolute"
+    , style "top" "100px"
+    , style "left" "150px"
+    , style "width" "100px"
+    , style "height" "100px"
+    , style "background-color" "#976"
     ]
 
 
@@ -121,12 +120,12 @@ toItemGroups context =
               , ( ContextMenu.item "Yo!", Item 2 )
               ]
             , [ ( ContextMenu.item "Take photos"
-                    |> ContextMenu.icon FontAwesome.camera Color.green
+                    -- |> ContextMenu.icon FontAwesome.camera Color.green
                     |> ContextMenu.disabled True
                 , Item 3
                 )
               , ( ContextMenu.item "Have a break"
-                    |> ContextMenu.icon FontAwesome.coffee Color.brown
+                    -- |> ContextMenu.icon FontAwesome.coffee Color.brown
                     |> ContextMenu.disabled False
                 , Item 4
                 )
@@ -136,7 +135,7 @@ toItemGroups context =
                 , Item 6
                 )
               , ( ContextMenu.itemWithAnnotation "Item with annotation" "Some annotation here"
-                    |> ContextMenu.icon Material.tag_faces Color.red
+                    -- |> ContextMenu.icon Material.tag_faces Color.red
                     |> ContextMenu.disabled False
                 , Item 7
                 )

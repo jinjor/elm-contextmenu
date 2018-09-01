@@ -1,26 +1,10 @@
-module ContextMenu
-    exposing
-        ( Config
-        , ContextMenu
-        , Cursor(..)
-        , Direction(..)
-        , Item
-        , Msg
-        , Overflow(..)
-        , defaultConfig
-        , disabled
-        , icon
-        , init
-        , item
-        , itemWithAnnotation
-        , open
-        , openIf
-        , setOnDehover
-        , shortcut
-        , subscriptions
-        , update
-        , view
-        )
+module ContextMenu exposing
+    ( ContextMenu, Msg, init, update, subscriptions
+    , Item, item, itemWithAnnotation, disabled, icon, shortcut
+    , Config, Direction(..), Overflow(..), Cursor(..), defaultConfig
+    , view, open, openIf
+    , setOnDehover
+    )
 
 {-| The ContextMenu component that follows the Elm Architecture.
 
@@ -58,7 +42,6 @@ The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org
 import Browser
 import Browser.Dom
 import Browser.Events
-import Color exposing (Color)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -70,6 +53,10 @@ import Task exposing (Task)
 
 
 -- TYPES
+
+
+type alias Color =
+    String
 
 
 type alias Size =
@@ -282,17 +269,17 @@ subscriptions (ContextMenu model) =
 
 disabledTextColor : Color
 disabledTextColor =
-    Color.rgb 200 200 200
+    "rgb(200, 200, 200)"
 
 
 annotationTextColor : Color
 annotationTextColor =
-    Color.rgb 200 200 200
+    "rgb(200, 200, 200)"
 
 
 shortcutTextColor : Color
 shortcutTextColor =
-    Color.rgb 200 200 200
+    "rgb(200, 200, 200)"
 
 
 containerBorderWidth : Float
@@ -412,8 +399,8 @@ calculateY overflow windowHeight menuHeight y =
 {-| The menu item. You can construct it with pipe-friendly functions.
 
     ContextMenu.item "Take photos"
-      |> ContextMenu.icon FontAwesome.camera Color.green
-      |> ContextMenu.disabled True
+        |> ContextMenu.icon FontAwesome.camera Color.green
+        |> ContextMenu.disabled True
 
 -}
 type Item
@@ -479,9 +466,7 @@ shortcut shortcutName (Item item_) =
 {-| Shows the icon.
 
 The first function creates the icon.
-This fuction is compatible with
-[elm-material-icons](http://package.elm-lang.org/packages/elm-community/elm-material-icons/latest) and
-[elm-font-awesome](http://package.elm-lang.org/packages/jystic/elm-font-awesome/latest).
+The Color is just a String like `#fff`, `rgb(100,200,200)`, etc.
 
 -}
 icon : (Color -> Int -> Html Never) -> Color -> Item -> Item
@@ -537,8 +522,8 @@ type Cursor
         , direction = RightBottom
         , overflowX = Mirror
         , overflowY = Mirror
-        , containerColor = Color.white
-        , hoverColor = Color.rgb 240 240 240
+        , containerColor = "white"
+        , hoverColor = "rgb(240 240 240)"
         , invertText = False
         , cursor = Pointer
         , rounded = False
@@ -552,8 +537,8 @@ defaultConfig =
     , direction = RightBottom
     , overflowX = Mirror
     , overflowY = Mirror
-    , containerColor = Color.white
-    , hoverColor = Color.rgb 240 240 240
+    , containerColor = "white"
+    , hoverColor = "rgb(240 240 240)"
     , invertText = False
     , cursor = Pointer
     , rounded = False

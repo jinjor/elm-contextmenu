@@ -1,7 +1,10 @@
-module Configs exposing (..)
+module Configs exposing (deepBlue, googleSpreadsheet, gray, lightBlue, lightGray, mac, white, winChrome, winDesktop, winEdge, winFirefox)
 
 import ContextMenu exposing (..)
-import Color exposing (Color)
+
+
+type alias Color =
+    String
 
 
 winDesktop : ContextMenu.Config
@@ -94,24 +97,24 @@ googleSpreadsheet =
 
 white : Color
 white =
-    Color.rgb 255 255 255
+    "rgb(255, 255, 255)"
 
 
 lightGray : Color
 lightGray =
-    Color.rgb 238 238 238
+    "rgb(238, 238, 238)"
 
 
 gray : Color
 gray =
-    Color.rgb 217 217 217
+    "rgb(217, 217, 217)"
 
 
 lightBlue : Color
 lightBlue =
-    Color.rgb 117 199 253
+    "rgb(117, 199, 253)"
 
 
 deepBlue : Color
 deepBlue =
-    Color.rgb 62 126 255
+    "rgb(62,126,255)"

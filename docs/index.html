@@ -11,7 +11,7 @@
       padding: 0;
       margin: 0;
     }
-
+    
     body {
       font-family: "Times New Roman", calibri, helvetica, arial, sans-serif;
       font-size: 24px;
@@ -21,8 +21,11 @@
 </head>
 
 <body>
+  <div id="elm-node"></div>
   <script type="text/javascript">
-    Elm.Main.fullscreen()
+    Elm.Main.init({
+        node: document.getElementById("elm-node")
+    })
   </script>
 </body>
 

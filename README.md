@@ -26,14 +26,15 @@ type Msg
 
 <span>3. Initialize</span>
 ```elm
-init : (Model, Cmd Msg)
-init =
+init : Flags -> (Model, Cmd Msg)
+init flags =
   let
     (contextMenu, msg) = ContextMenu.init
   in
-    { contextMenu = contextMenu
-    }
-      ! [ Cmd.map ContextMenuMsg msg ]
+    ( { contextMenu = contextMenu
+      }
+    , Cmd.map ContextMenuMsg msg
+    )
 ```
 
 <span>4. Update</span>
@@ -46,7 +47,9 @@ update msg model =
         (contextMenu, cmd) =
           ContextMenu.update msg model.contextMenu
       in
-        { model | contextMenu = contextMenu } ! [ Cmd.map ContextMenuMsg cmd ]
+        ( { model | contextMenu = contextMenu }
+        , Cmd.map ContextMenuMsg cmd
+        )
 ```
 
 <span>5. Subscribe</span>
@@ -83,4 +86,4 @@ toItemGroups context =
 
 ## License
 
-BSD3
+BSD-3-Clause

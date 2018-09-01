@@ -1,8 +1,11 @@
-module Styles exposing (..)
+module Styles exposing (Style, annotation, borderColor, container, icon, partition, px, row, shortcut, text)
 
-import Color exposing (Color)
 import Html exposing (Attribute)
 import Html.Attributes exposing (style)
+
+
+type alias Color =
+    String
 
 
 type alias Style msg =
@@ -24,7 +27,7 @@ container containerColor borderWidth padding rounded width left top fontFamily f
     , style "left" (px left)
     , style "width" (px width)
     , style "z-index" (String.fromFloat (2147483647 - 10))
-    , style "background-color" (fromColor containerColor)
+    , style "background-color" containerColor
     , style "cursor" "default"
     , style "box-shadow" "0px 3px 8px 0px rgba(0,0,0,0.3)"
     , style "padding" (px padding ++ " 0")
@@ -46,7 +49,7 @@ row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabl
     , style "padding" "0 18px 0 28px"
     , style "background-color"
         (if hovered then
-            fromColor hoverColor
+            hoverColor
 
          else
             ""
@@ -54,7 +57,7 @@ row hoverColor disabledTextColor invertText usePointer lineHeight hovered disabl
     , style "height" (px lineHeight)
     , style "color"
         (if disabled then
-            fromColor disabledTextColor
+            disabledTextColor
 
          else if hovered && invertText then
             "#fff"
@@ -94,7 +97,7 @@ annotation color annotationHeight fontSize disabled =
     [ style "margin-top" "-2px"
     , style "line-height" (px annotationHeight)
     , style "font-size" (px fontSize)
-    , style "color" (fromColor color)
+    , style "color" color
     ]
 
 
@@ -106,7 +109,7 @@ shortcut color lineHeight hovered =
             ""
 
          else
-            fromColor color
+            color
         )
     ]
 
@@ -136,20 +139,3 @@ icon size =
 px : Float -> String
 px n =
     String.fromFloat n ++ "px"
-
-
-fromColor : Color -> String
-fromColor color =
-    let
-        { red, green, blue, alpha } =
-            Color.toRgb color
-    in
-    "rgba("
-        ++ String.fromInt red
-        ++ ","
-        ++ String.fromInt green
-        ++ ","
-        ++ String.fromInt blue
-        ++ ","
-        ++ String.fromFloat alpha
-        ++ ")"
