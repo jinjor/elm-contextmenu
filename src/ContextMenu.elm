@@ -117,7 +117,7 @@ shouldCloseOnClick closeOnDehover openState =
                 hover /= Container
 
         Nothing ->
-            True
+            False
 
 
 setHoverState : HoverState -> OpenState context -> OpenState context
