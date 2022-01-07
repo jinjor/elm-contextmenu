@@ -2,7 +2,7 @@ module ContextMenu exposing
     ( ContextMenu, Msg, init, update, subscriptions
     , Item, item, itemWithAnnotation, disabled, icon, shortcut
     , Config, Direction(..), Overflow(..), Cursor(..), defaultConfig
-    , view, open, openIf
+    , view, open, openIf, openClick
     , setOnDehover
     )
 
@@ -35,7 +35,7 @@ The boilerplace functions. See [The Elm Architecture](https://guide.elm-lang.org
 
 # Advanced
 
-@docs setOnDehover
+@docs setOnDehover, openClick
 
 -}
 
@@ -590,6 +590,31 @@ openIf condition transform context =
     else
         on "contextmenu" (Decode.succeed (transform NoOp))
 
+{-| Similar to `open` but it opens on the left click instead of the right.
+
+This is useful if you want to improve accessibility and add a button that also
+responds to the left click.
+
+-}
+openClick : Bool -> (Msg context -> msg) -> context -> Attribute msg
+openClick condition transform context =
+    if condition then
+        Html.Events.custom
+            "click"
+            (position
+                |> Decode.map (RequestOpen context)
+                |> Decode.map transform
+                |> Decode.map
+                    (\msg ->
+                        { message = msg
+                        , stopPropagation = True
+                        , preventDefault = True
+                        }
+                    )
+            )
+
+    else
+        on "contextmenu" (Decode.succeed (transform NoOp))
 
 position : Decode.Decoder Position
 position =
